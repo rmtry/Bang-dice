@@ -1,0 +1,7 @@
+{
+    "id": 1,
+    "face": "Arrow||One||Two||Beer||Part||Dynamite",
+    "description":"An Arrow || Shoot the Player next to you once || Shoot the Player one person further from you once || Heal a person of a choice || One Part of the Gatling Gun || One Dynamite, get three then you will lose your turn and 1 health.",
+    "targetId": 2,
+    "kept": true
+}

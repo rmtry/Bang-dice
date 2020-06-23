@@ -1,55 +1,97 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as React from 'react';
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button, FlatList, AsyncStorage  } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { Formik } from 'formik';
 
 import { MonoText } from '../components/StyledText';
 
-export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.welcomeContainer}>
-          <Image
-            source={
-              __DEV__
-                ? require('../assets/images/robot-dev.png')
-                : require('../assets/images/robot-prod.png')
-            }
-            style={styles.welcomeImage}
-          />
-        </View>
+import io from 'socket.io-client/dist/socket.io';
 
-        <View style={styles.getStartedContainer}>
-          <DevelopmentModeNotice />
 
-          <Text style={styles.getStartedText}>Open up the code for this screen:</Text>
 
-          <View style={[styles.codeHighlightContainer, styles.homeScreenFilename]}>
-            <MonoText>screens/HomeScreen.js</MonoText>
-          </View>
+export default class HomeScreen extends React.Component {
+  constructor(props){
+    super(props);
+    this.socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
+  }
+  state = {
+    room: undefined,
+    name: undefined,
+    users: []
+  }
 
-          <Text style={styles.getStartedText}>
-            Change any of the text, save the file, and your app will automatically reload.
-          </Text>
-        </View>
+  setStateData = (key, value) => {
+    this.setState({ [key]: value })
+  }
 
-        <View style={styles.helpContainer}>
-          <TouchableOpacity onPress={handleHelpPress} style={styles.helpLink}>
-            <Text style={styles.helpLinkText}>Help, it didn’t automatically reload!</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+  componentDidMount = () => {
+    this.socket.on('updateUserList', (users) => {
+      console.log('current users', users)
+      this.setStateData('users', users)
+    })
+  }
 
-      <View style={styles.tabBarInfoContainer}>
-        <Text style={styles.tabBarInfoText}>This is a tab bar. You can edit it in:</Text>
+  handleLeave = () => {
+    this.socket.emit('leave', {room: this.state.room, name: this.state.name}, () => {
+      this.setStateData('room', undefined)
+    })
+  }
 
-        <View style={[styles.codeHighlightContainer, styles.navigationFilename]}>
-          <MonoText style={styles.codeHighlightText}>navigation/BottomTabNavigator.js</MonoText>
-        </View>
+  onSubmit = (values) => {
+    console.log('on submit', values)
+    this.socket.emit('join', values, () => {
+      console.log('emit sucess!')
+      this.setStateData('room', values.room)
+      this.setStateData('name', values.name)
+      
+    })
+  }
+
+  render() {
+    return (
+      <View style={styles.container}>
+        {
+          this.state.room ? 
+            <View>
+              <Text>User: {this.state.name}</Text>
+              <Text>Room: {this.state.room}</Text>
+              <Button onPress={this.handleLeave} title="Go out"></Button>
+              <Text>List of users:</Text>
+              <FlatList 
+                data={this.state.users}
+                renderItem={({item, index}) => <Text key={index}>{index + 1}: {item}</Text>}  
+              />
+            </View>
+            :
+            <Formik
+              initialValues={{ room: this.state.room, name: this.state.name }}
+              onSubmit={values => this.onSubmit(values)}
+            >
+              {({ handleChange, handleBlur, handleSubmit, values }) => {
+                return (
+                  <View>
+                    <Text>Room</Text>
+                    <TextInput
+                      onChangeText={handleChange('room')}
+                      onBlur={handleBlur('room')}
+                      value={values.room}
+                    />
+                    <Text>User</Text>
+                    <TextInput
+                      onChangeText={handleChange('name')}
+                      onBlur={handleBlur('name')}
+                      value={values.name}
+                    />
+                    <Button onPress={handleSubmit} title="Go" />
+                  </View>
+                )
+              }}
+            </Formik>
+          }
       </View>
-    </View>
-  );
+    )
+  }
 }
 
 HomeScreen.navigationOptions = {
