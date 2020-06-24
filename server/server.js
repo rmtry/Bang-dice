@@ -16,6 +16,8 @@ var users = new Users();
 
 app.use(express.static(publicPath));
 
+let gameBegin;
+
 io.on('connection', (socket) => {
     console.log('new user');
 
@@ -35,7 +37,7 @@ io.on('connection', (socket) => {
         
         // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
         socket.emit('statusMessage', {from: 'Admin', message: 'Welcome ' + params.name + ' to the game!'});
-
+        
         // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
         //
         //
@@ -43,6 +45,24 @@ io.on('connection', (socket) => {
         console.log(users)
         callback();
     });
+
+    socket.on('ready', (params, callback) => {
+        users.readyUser(params.id, params.room, params.isReady)
+
+        io.to(params.room).emit('updateUserList', users.getUserList(params.room));
+        console.log(`User ${params.id} is ${params.isReady}`)
+
+        if (users.areReady(params.room)) {
+            console.log('All users ready, Game will be start in 4s')
+            gameBegin = setTimeout(() => {
+                console.log('Game starts!')
+            }, 5000)
+        } else {
+            clearTimeout(gameBegin)
+        }
+
+        callback();
+    })
 
     socket.on('leave', (params, callback) => {
 

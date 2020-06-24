@@ -1,6 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as React from 'react';
 import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button, FlatList, AsyncStorage  } from 'react-native';
+import { CheckBox } from 'native-base';
 import { ScrollView } from 'react-native-gesture-handler';
 import { Formik } from 'formik';
 
@@ -16,9 +17,11 @@ export default class HomeScreen extends React.Component {
     this.socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
   }
   state = {
+    id: undefined,
     room: undefined,
     name: undefined,
-    users: []
+    users: [],
+    isReady: false,
   }
 
   setStateData = (key, value) => {
@@ -28,6 +31,15 @@ export default class HomeScreen extends React.Component {
   componentDidMount = () => {
     this.socket.on('updateUserList', (users) => {
       console.log('current users', users)
+
+      let i = 1
+      users = users.map(user => {
+        user.index = i
+        i++
+        if (user.id === this.socket.id) this.setStateData('isReady', user.isReady)
+        return user
+      })
+
       this.setStateData('users', users)
     })
   }
@@ -38,13 +50,18 @@ export default class HomeScreen extends React.Component {
     })
   }
 
+  handleReady = () => {
+    this.socket.emit('ready', { id: this.socket.id, room: this.state.room, isReady: !this.state.isReady}, () => {
+    })
+  }
+
   onSubmit = (values) => {
     console.log('on submit', values)
     this.socket.emit('join', values, () => {
       console.log('emit sucess!')
       this.setStateData('room', values.room)
       this.setStateData('name', values.name)
-      
+      this.setStateData('isReady', false)
     })
   }
 
@@ -56,11 +73,20 @@ export default class HomeScreen extends React.Component {
             <View>
               <Text>User: {this.state.name}</Text>
               <Text>Room: {this.state.room}</Text>
+              <Button onPress={this.handleReady} title={!this.state.isReady ? "Ready?" : "Not Ready" } />
               <Button onPress={this.handleLeave} title="Go out"></Button>
               <Text>List of users:</Text>
               <FlatList 
                 data={this.state.users}
-                renderItem={({item, index}) => <Text key={index}>{index + 1}: {item}</Text>}  
+                renderItem={({item}) => 
+                  <View style={styles.checkboxContainer}>
+                    <Text key={item.index}>{item.index}: {item.name} </Text>
+                    <CheckBox
+                      disabled={true}
+                      style={styles.checkBox}
+                      checked={item.isReady}
+                    />
+                  </View>}  
               />
             </View>
             :
@@ -135,6 +161,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  checkbox: {
+    alignSelf: "center",
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    marginBottom: 20,
   },
   developmentModeText: {
     marginBottom: 20,
