@@ -18,8 +18,14 @@ app.use(express.static(publicPath));
 
 let gameBegin;
 
+
 io.on('connection', (socket) => {
     console.log('new user');
+
+    const startTheGame = (room) => {
+        let now = new Date()
+        io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'The game has begun!'});
+    }
 
     socket.on('join', (params, callback) => {
 
@@ -32,7 +38,8 @@ io.on('connection', (socket) => {
         socket.join(params.room);
         users.removeUser(socket.id);
         users.addUser(socket.id, params.name, params.room);
-
+        let now = new Date()
+        io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `${params.name} joined the room`});
         io.to(params.room).emit('updateUserList', users.getUserList(params.room));
         
         // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
@@ -54,10 +61,17 @@ io.on('connection', (socket) => {
 
         if (users.areReady(params.room)) {
             console.log('All users ready, Game will be start in 4s')
+            let now = new Date()
+            io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `All players ready. Game will start in a few seconds...`});
             gameBegin = setTimeout(() => {
-                console.log('Game starts!')
+                // console.log('Game starts!')
+                startTheGame(params.room)
             }, 5000)
         } else {
+            if(gameBegin) {
+                let now = new Date()
+                io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game cancelled.`});
+            }
             clearTimeout(gameBegin)
         }
 
@@ -74,7 +88,8 @@ io.on('connection', (socket) => {
 
         socket.leave(params.room);
         users.removeUser(socket.id, params.name, params.room);
-
+        let now = new Date()
+        io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `${params.name} left the room`});
         io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
         // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));

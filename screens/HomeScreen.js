@@ -17,6 +17,7 @@ export default class HomeScreen extends React.Component {
     this.socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
   }
   state = {
+    adminMessages: [],
     id: undefined,
     room: undefined,
     name: undefined,
@@ -26,6 +27,10 @@ export default class HomeScreen extends React.Component {
 
   setStateData = (key, value) => {
     this.setState({ [key]: value })
+  }
+
+  setMessages = (message) => {
+    this.setState(prevState => ({ adminMessages: prevState.adminMessages.push(message)}))
   }
 
   componentDidMount = () => {
@@ -41,6 +46,12 @@ export default class HomeScreen extends React.Component {
       })
 
       this.setStateData('users', users)
+    })
+
+    this.socket.on('adminMessage', (res) => {
+      console.log(res.time, res.message)
+
+      this.setStateData('adminMessages', res)
     })
   }
 
@@ -88,6 +99,13 @@ export default class HomeScreen extends React.Component {
                     />
                   </View>}  
               />
+              <ScrollView>
+                {
+                  this.state.adminMessages.length > 0 && this.state.adminMessages.map((message, index) => (
+                    <Text key={index}>{message.time} {message.message}</Text>
+                  ))
+                }
+              </ScrollView>
             </View>
             :
             <Formik
