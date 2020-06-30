@@ -6,6 +6,8 @@ const socketIO = require('socket.io');
 // const {generateMessage, generateLocationMessage} = require('./utils/message.js');
 // const {isRealString} = require('./utils/validation');
 const {Users} = require('./utils/users');
+const {Games, Game} = require('./utils/games');
+const {Player} = require('./utils/player');
 
 const publicPath = path.join(__dirname, '../public');
 const port = process.env.PORT || 3000;
@@ -13,10 +15,62 @@ var app = express();
 var server = http.createServer(app);
 var io= socketIO(server);
 var users = new Users();
+var games = new Games()
 
 app.use(express.static(publicPath));
 
 let gameBegin;
+
+generatePlayers = (room, users) => {
+    let quantity = users.length
+    console.log('generated users', users)
+    let roles = []
+    let characters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'p', 'q']
+    let players = []
+    let roleId = undefined
+    let characterId = undefined
+
+    switch(quantity){
+        case 3:
+            roles = ['S', 'R', 'O']
+            break;
+        case 4:
+            roles = ['S', 'V', 'O', 'O']
+            break;
+        case 5:
+            roles = ['S', 'V', 'O', 'O', 'R']
+            break;
+        case 6:
+            roles = ['S', 'V', 'O', 'O', 'R', 'V']
+            break;
+        case 7:
+            roles = ['S', 'V', 'O', 'O', 'R', 'R', 'O']
+            break;
+        default:
+            roles = ['S', 'V', 'O', 'O', 'R', 'V', 'O', 'R']
+            break;
+    }
+
+    console.log('generated roles', roles)
+
+    for (let i = 0; i< users.length; i++) {
+        roleId = roles[Math.floor(Math.random() * roles.length)];
+        characterId = characters[Math.floor(Math.random() * characters.length)];
+        
+        let player = new Player(users[i].id, room, roleId, characterId)
+        console.log('generated player', player)
+
+        players.push(player)
+
+        roles.splice(roles.indexOf(roleId), 1)
+        characters.splice(characters.indexOf(characterId), 1)
+        console.log('generated roles left', roles)
+        console.log('generated characters left', characters)
+
+    }
+
+    return players
+}
 
 
 io.on('connection', (socket) => {
@@ -25,6 +79,14 @@ io.on('connection', (socket) => {
     const startTheGame = (room) => {
         let now = new Date()
         io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'The game has begun!'});
+
+        let usersInRoom = users.getUserList(room)
+        let players = generatePlayers(room, usersInRoom)
+        console.log('generated players', players)
+        games.addGame(room, players)
+        console.log('generated games', games)
+
+        io.to(room).emit('gameData', games.getGame(room));
     }
 
     socket.on('join', (params, callback) => {

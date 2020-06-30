@@ -1,15 +1,17 @@
-class Games {
-    constructor(room, players){
-        this.room = room,
-        this.players = players
-    }
-}
-
 let games=[]
 
 class Games {
     constructor(){
         this.games = games
     }
+
+    addGame(room, players) {
+        let game = { room, players }
+        this.games.push(game)
+    }
+
+    getGame(room) {
+        return games.filter(game => game.room === room)
+    }
 }
-module.exports = {Game, Games};
+module.exports = { Games };

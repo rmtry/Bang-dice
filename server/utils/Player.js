@@ -6,10 +6,9 @@
 // 4: Arrow
 // 5: Part
 class Player {
-    constructor(userId, gameId, gameIndex, roleId, characterId){
+    constructor(userId, room, roleId, characterId){
         this.userId = userId;
-        this.gameId = gameId;
-        this.gameIndex = gameIndex;
+        this.room = room
         this.roleId = roleId;
         this.characterId = characterId;
         this.health = 0
@@ -34,4 +33,4 @@ class Players {
         this.players = players
     }
 }
-module.exports = {Players};
+module.exports = {Player};

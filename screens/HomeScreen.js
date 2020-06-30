@@ -1,8 +1,8 @@
 import * as WebBrowser from 'expo-web-browser';
 import * as React from 'react';
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button, FlatList, AsyncStorage  } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput, Button, FlatList, AsyncStorage, ScrollView  } from 'react-native';
 import { CheckBox } from 'native-base';
-import { ScrollView } from 'react-native-gesture-handler';
+// import { ScrollView } from 'react-native-gesture-handler';
 import { Formik } from 'formik';
 
 import { MonoText } from '../components/StyledText';
@@ -53,6 +53,10 @@ export default class HomeScreen extends React.Component {
 
       this.setStateData('adminMessages', res)
     })
+
+    this.socket.on('gameData', (res) => {
+      console.log(res)
+    })
   }
 
   handleLeave = () => {
@@ -99,13 +103,15 @@ export default class HomeScreen extends React.Component {
                     />
                   </View>}  
               />
-              <ScrollView>
-                {
-                  this.state.adminMessages.length > 0 && this.state.adminMessages.map((message, index) => (
-                    <Text key={index}>{message.time} {message.message}</Text>
-                  ))
-                }
-              </ScrollView>
+              <View>
+                <FlatList 
+                  data={this.state.adminMessages}
+                  renderItem={({item}) => 
+                    <View style={styles.checkboxContainer}>
+                      <Text key={item.index}>{item.time}: {item.message} </Text>
+                    </View>}  
+                />
+              </View>
             </View>
             :
             <Formik
