@@ -17,6 +17,7 @@ export default class HomeScreen extends React.Component {
     this.socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
   }
   state = {
+    gameBegun: false,
     adminMessages: [],
     id: undefined,
     room: undefined,
@@ -30,7 +31,7 @@ export default class HomeScreen extends React.Component {
   }
 
   setMessages = (message) => {
-    this.setState(prevState => ({ adminMessages: prevState.adminMessages.push(message)}))
+    this.setState(prevState => ({ adminMessages: prevState.adminMessages.concat([message])}))
   }
 
   componentDidMount = () => {
@@ -51,10 +52,12 @@ export default class HomeScreen extends React.Component {
     this.socket.on('adminMessage', (res) => {
       console.log(res.time, res.message)
 
-      this.setStateData('adminMessages', res)
+      this.setMessages(res)
+      console.log(this.state.adminMessages)
     })
 
     this.socket.on('gameData', (res) => {
+      this.setStateData('gameBegun', true)
       console.log(res)
     })
   }
@@ -84,61 +87,77 @@ export default class HomeScreen extends React.Component {
     return (
       <View style={styles.container}>
         {
-          this.state.room ? 
-            <View>
-              <Text>User: {this.state.name}</Text>
-              <Text>Room: {this.state.room}</Text>
-              <Button onPress={this.handleReady} title={!this.state.isReady ? "Ready?" : "Not Ready" } />
-              <Button onPress={this.handleLeave} title="Go out"></Button>
-              <Text>List of users:</Text>
-              <FlatList 
-                data={this.state.users}
-                renderItem={({item}) => 
-                  <View style={styles.checkboxContainer}>
-                    <Text key={item.index}>{item.index}: {item.name} </Text>
-                    <CheckBox
-                      disabled={true}
-                      style={styles.checkBox}
-                      checked={item.isReady}
-                    />
-                  </View>}  
-              />
-              <View>
+          this.state.gameBegun ? 
+          <View>
+              <Text>The game has begun</Text>
+              <ScrollView>
                 <FlatList 
                   data={this.state.adminMessages}
                   renderItem={({item}) => 
                     <View style={styles.checkboxContainer}>
                       <Text key={item.index}>{item.time}: {item.message} </Text>
+                    </View>
+                  }  
+                />
+              </ScrollView>
+          </View>
+            :
+            this.state.room ? 
+              <View>
+                <Text>User: {this.state.name}</Text>
+                <Text>Room: {this.state.room}</Text>
+                <Button onPress={this.handleReady} title={!this.state.isReady ? "Ready?" : "Not Ready" } />
+                <Button onPress={this.handleLeave} title="Go out"></Button>
+                <Text>List of users:</Text>
+                <FlatList 
+                  data={this.state.users}
+                  renderItem={({item}) => 
+                    <View style={styles.checkboxContainer}>
+                      <Text key={item.index}>{item.index}: {item.name} </Text>
+                      <CheckBox
+                        disabled={true}
+                        style={styles.checkBox}
+                        checked={item.isReady}
+                      />
                     </View>}  
                 />
+                <View>
+                  <FlatList 
+                    data={this.state.adminMessages}
+                    renderItem={({item}) => 
+                      <View style={styles.checkboxContainer}>
+                        <Text key={item.index}>{item.time}: {item.message} </Text>
+                      </View>}  
+                  />
+                </View>
               </View>
-            </View>
-            :
-            <Formik
-              initialValues={{ room: this.state.room, name: this.state.name }}
-              onSubmit={values => this.onSubmit(values)}
-            >
-              {({ handleChange, handleBlur, handleSubmit, values }) => {
-                return (
-                  <View>
-                    <Text>Room</Text>
-                    <TextInput
-                      onChangeText={handleChange('room')}
-                      onBlur={handleBlur('room')}
-                      value={values.room}
-                    />
-                    <Text>User</Text>
-                    <TextInput
-                      onChangeText={handleChange('name')}
-                      onBlur={handleBlur('name')}
-                      value={values.name}
-                    />
-                    <Button onPress={handleSubmit} title="Go" />
-                  </View>
-                )
-              }}
-            </Formik>
-          }
+              :
+              <Formik
+                initialValues={{ room: this.state.room, name: this.state.name }}
+                onSubmit={values => this.onSubmit(values)}
+              >
+                {({ handleChange, handleBlur, handleSubmit, values }) => {
+                  return (
+                    <View>
+                      <Text>Room</Text>
+                      <TextInput
+                        onChangeText={handleChange('room')}
+                        onBlur={handleBlur('room')}
+                        value={values.room}
+                      />
+                      <Text>User</Text>
+                      <TextInput
+                        onChangeText={handleChange('name')}
+                        onBlur={handleBlur('name')}
+                        value={values.name}
+                      />
+                      <Button onPress={handleSubmit} title="Go" />
+                    </View>
+                  )
+                }}
+              </Formik>
+            }
+        
       </View>
     )
   }

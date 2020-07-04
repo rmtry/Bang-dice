@@ -11,7 +11,7 @@ class Player {
         this.room = room
         this.roleId = roleId;
         this.characterId = characterId;
-        this.health = 0
+        this.health = this.roleId === 'S' ? 10 : 8
     }
 
     rollDice(amount) {

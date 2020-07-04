@@ -83,10 +83,16 @@ io.on('connection', (socket) => {
         let usersInRoom = users.getUserList(room)
         let players = generatePlayers(room, usersInRoom)
         console.log('generated players', players)
-        games.addGame(room, players)
+        games.addGame(room, players, true)
         console.log('generated games', games)
 
         io.to(room).emit('gameData', games.getGame(room));
+
+        //
+        while(games.checkGameContinue(room)) {
+            // update the latest data of the game
+            io.to(room).emit('gameData', games.getGame(room));
+        }
     }
 
     socket.on('join', (params, callback) => {
