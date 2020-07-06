@@ -6,11 +6,12 @@
 // 4: Arrow
 // 5: Part
 class Player {
-    constructor(userId, room, roleId, characterId){
+    constructor(userId, room, roleId, characterId, index){
         this.userId = userId;
         this.room = room
         this.roleId = roleId;
         this.characterId = characterId;
+        this.index = index
         this.health = this.roleId === 'S' ? 10 : 8
     }
 

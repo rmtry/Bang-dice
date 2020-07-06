@@ -1,17 +1,29 @@
 let games=[]
 
+[{
+    room: '',
+    players: [],
+    currentTurnIndex: 0,
+    winner: {}
+}]
+
 class Games {
     constructor(){
-        this.games = games
+        this.games = []
     }
 
     addGame(room, players, start = false) {
         let game = { room, players, start }
+        // find sherif to get the first player index
+        let sherif = game.players.find(player => player.roleId === 'S')
+        if (sherif) game.currentTurnIndex = sherif.index
+        else game.currentTurnIndex = 0
+        console.log(this.games)
         this.games.push(game)
     }
 
     getGame(room) {
-        return this.games.filter(game => game.room === room)
+        return this.games.find(game => game.room === room)
     }
 
     changeGameData(room, key, value) {
@@ -25,8 +37,9 @@ class Games {
 
     checkGameContinue(room) {
         let game = this.getGame(room)
-        return game.winner ? true : false
+        return game.winner ? false : true
     }
+    
 
     checkGameStatus(room) {
         let game = this.games.filter(game => game.room === room)
