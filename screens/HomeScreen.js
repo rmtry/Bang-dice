@@ -90,7 +90,7 @@ export default class HomeScreen extends React.Component {
           this.state.gameBegun ? 
           <View>
               <Text>The game has begun</Text>
-              <ScrollView>
+              <ScrollView style={styles.messagesContainer}>
                 <FlatList 
                   data={this.state.adminMessages}
                   renderItem={({item}) => 
@@ -204,6 +204,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  messagesContainer: {
+    height: 250
   },
   checkbox: {
     alignSelf: "center",

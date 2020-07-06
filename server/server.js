@@ -57,7 +57,7 @@ generatePlayers = (room, users) => {
         roleId = roles[Math.floor(Math.random() * roles.length)];
         characterId = characters[Math.floor(Math.random() * characters.length)];
         
-        let player = new Player(users[i].id, room, roleId, characterId)
+        let player = new Player(users[i].id, room, roleId, characterId, i)
         console.log('generated player', player)
 
         players.push(player)
@@ -88,11 +88,27 @@ io.on('connection', (socket) => {
 
         io.to(room).emit('gameData', games.getGame(room));
 
-        //
-        while(games.checkGameContinue(room)) {
-            // update the latest data of the game
-            io.to(room).emit('gameData', games.getGame(room));
-        }
+        let currentGame = games.getGame(room)
+        console.log('current game', currentGame.players)
+
+        let position = currentGame.currentTurnIndex
+
+        let turn = (position) => {
+            io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position});
+            games.changeGameData(room, 'currentTurnIndex', position)
+            console.log('Turn of ', position)
+            setTimeout(() => {
+                console.log('Turn end ', position)
+                io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position + ' ended'});
+                if (games.checkGameContinue(room)) {
+                    position++
+                    if(position === currentGame.players.length) position = 0
+                    turn(position)
+                }
+            }, 5000)
+        } 
+
+        turn(position)
     }
 
     socket.on('join', (params, callback) => {
