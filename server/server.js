@@ -95,17 +95,45 @@ io.on('connection', (socket) => {
 
         let turn = (position) => {
             io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position});
-            games.changeGameData(room, 'currentTurnIndex', position)
+            
+            games.changeGameData(room, { currentTurnIndex : position })
+
             console.log('Turn of ', position)
             setTimeout(() => {
                 console.log('Turn end ', position)
                 io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position + ' ended'});
+                
+                console.log('checking game it can be continued...')
+                games.checkGameStatus(room)
+
                 if (games.checkGameContinue(room)) {
                     position++
                     if(position === currentGame.players.length) position = 0
+                    console.log('Havent reached the end, game continues...')
                     turn(position)
+                } else {
+                    console.log('There is a winner, game ended...')
+                    let player = games.getGame(room).winner
+                    console.log('The winner is', player)
+                    let winner
+                    switch(player.roleId) {
+                        case 'O':
+                            winner = "Outlaws"
+                            break;
+                        case 'S':
+                            winner = "Sherif"
+                            break;
+                        case 'R':
+                            winner = "Renegades"
+                            break;
+                                    
+                    }
+                    io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game has ended, The ${winner} wins!`});
                 }
             }, 5000)
+            // action in the turn
+            games.useEffect(room, 'shoot', 2, position, position)
+            console.log('Game history', games.getGame(room).players.map(player => ({ role: player.roleId, health: player.health })))
         } 
 
         turn(position)
