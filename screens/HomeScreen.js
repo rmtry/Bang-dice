@@ -41,6 +41,7 @@ const HomeScreen = props => {
       return prev.concat([message]);
     });
   };
+
   useEffect(() => {
     socket.on('updateUserList', users => {
       console.log('current users', users);
@@ -54,19 +55,18 @@ const HomeScreen = props => {
       });
 
       setUsers(users);
+      socket.on('adminMessage', res => {
+        console.log(res.time, res.message);
+
+        setMessages(res);
+        console.log(adminMessages);
+      });
+
+      socket.on('gameData', res => {
+        setGameBegun(true);
+        console.log(res);
+      });
     });
-  });
-
-  socket.on('adminMessage', res => {
-    console.log(res.time, res.message);
-
-    setMessages(res);
-    console.log(adminMessages);
-  });
-
-  socket.on('gameData', res => {
-    setGameBegun(true);
-    console.log(res);
   });
 
   const handleLeave = () => {
