@@ -12,7 +12,8 @@ class Player {
         this.roleId = roleId;
         this.characterId = characterId;
         this.index = index
-        this.health = this.roleId === 'S' ? 10 : 8
+        this.health = (roleId === 'S') ? 10 : 8
+        this.arrow = 0
     }
 
     rollDice(amount) {

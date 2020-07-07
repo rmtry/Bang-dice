@@ -21,6 +21,7 @@ app.use(express.static(publicPath));
 
 let gameBegin;
 
+// take the current users in the room and generate role and character to become a "Player"
 generatePlayers = (room, users) => {
     let quantity = users.length
     console.log('generated users', users)
@@ -76,40 +77,83 @@ generatePlayers = (room, users) => {
 io.on('connection', (socket) => {
     console.log('new user');
 
-    const startTheGame = (room) => {
+    const startTheGame = (room, socketId) => {
         let now = new Date()
         io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'The game has begun!'});
 
+        // generate the game with users in the room
         let usersInRoom = users.getUserList(room)
         let players = generatePlayers(room, usersInRoom)
         console.log('generated players', players)
         games.addGame(room, players, true)
         console.log('generated games', games)
 
-        io.to(room).emit('gameData', games.getGame(room));
-
         let currentGame = games.getGame(room)
         console.log('current game', currentGame.players)
 
-        let position = currentGame.currentTurnIndex
+        // send the new generated game to client
+        io.to(room).emit('gameData', { ...currentGame, players: currentGame.players.filter(player => player.id === socketId) });
+        io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Game will start soon, prepare for the battle!'});
 
+        // define the first turn
+        let position = currentGame.currentTurnIndex
+        
+        // define the logic to switch the turn, each turn 5s 
         let turn = (position) => {
+            // send the current turn data to the client
+            io.to(room).emit('gameData', { ...currentGame, players: currentGame.players.filter(player => player.id === socketId) });
             io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position});
-            games.changeGameData(room, 'currentTurnIndex', position)
+
             console.log('Turn of ', position)
+
+            // execute after 5s
             setTimeout(() => {
                 console.log('Turn end ', position)
                 io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position + ' ended'});
+
+                console.log('checking game it can be continued...')
+                games.checkGameStatus(room)
+                
                 if (games.checkGameContinue(room)) {
                     position++
                     if(position === currentGame.players.length) position = 0
+                    console.log('Havent reached the end, game continues...')
                     turn(position)
+                } else {
+                    console.log('There is a winner, game ended...')
+                    let player = games.getGame(room).winner
+                    console.log('The winner is', player)
+                    let winner
+                    switch(player.roleId) {
+                        case 'O':
+                            winner = "Outlaws"
+                            break;
+                        case 'S':
+                            winner = "Sherif"
+                            break;
+                        case 'R':
+                            winner = "Renegades"
+                            break;           
+                    }
+                    io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game has ended, The ${winner} wins!`});
                 }
             }, 5000)
-        } 
+            
+            // action in the turn
+            games.useEffect(room, 'shoot', 2, position, position)
+            console.log('Game history', games.getGame(room).players.map(player => ({ role: player.roleId, health: player.health })))
+        }
 
-        turn(position)
+        // Actual run the turn() after 5s to let users prepare
+        setTimeout(() => {
+            turn(position)
+        }, 1000)
+        
     }
+
+    socket.on('action', (params, callback) => {
+        console.log(`Action from Player: ${params.name}, index ${params.index}`)
+    })
 
     socket.on('join', (params, callback) => {
 
@@ -149,7 +193,7 @@ io.on('connection', (socket) => {
             io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `All players ready. Game will start in a few seconds...`});
             gameBegin = setTimeout(() => {
                 // console.log('Game starts!')
-                startTheGame(params.room)
+                startTheGame(params.room, params.id)
             }, 5000)
         } else {
             if(gameBegin) {
