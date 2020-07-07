@@ -24,6 +24,7 @@ class Games {
         this.games.push(game)
     }
 
+    // general idea of applying effect to the data
     useEffect(room, action, amount, from, target) {
         let game = this.getGame(room)
 
@@ -33,21 +34,21 @@ class Games {
         switch(action) {
             case 'heal':
                 game.players[targetIndex].health += amount
-                game.history.push(`Player ${game.players[fromIndex].name} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) healed ${game.players[targetIndex].name} (role ${game.players[targetIndex].roleId}, character ${game.players[targetIndex].characterId}) ${amount} hp`)
+                game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) healed ${game.players[targetIndex].index} (role ${game.players[targetIndex].roleId}, character ${game.players[targetIndex].characterId}) ${amount} hp`)
                 break;
             case 'shoot':
                 game.players[targetIndex].health -= amount
-                game.history.push(`Player ${game.players[fromIndex].name} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) shot ${game.players[targetIndex].name} (role ${game.players[targetIndex].roleId}, character ${game.players[targetIndex].characterId}) ${amount} hp`)
+                game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) shot ${game.players[targetIndex].index} (role ${game.players[targetIndex].roleId}, character ${game.players[targetIndex].characterId}) ${amount} hp`)
                 break;
             case 'dynamite':
                 game.players[from].health -= 1
-                game.history.push(`Player ${game.players[fromIndex].name} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) got Dynamite!`)
+                game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) got Dynamite!`)
                 break;
             case 'gatling':
                 game.players.map(player => {
                     if (player.index !== from) player.health -= 1
                 })
-                game.history.push(`Player ${game.players[fromIndex].name} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) use Gatling Gun!`)
+                game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) use Gatling Gun!`)
                 break;
             case 'arrow':
                 game.players[from].arrow += amount
@@ -59,7 +60,7 @@ class Games {
                     })
                     game.arrows = 9
                 }
-                game.history.push(`Player ${game.players[fromIndex].name} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) got ${amount} arrows!`)
+                game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) got ${amount} arrows!`)
                 break;
             default:
                 break;
