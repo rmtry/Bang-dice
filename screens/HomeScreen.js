@@ -21,7 +21,7 @@ import { Formik } from 'formik';
 import { MonoText } from '../components/StyledText';
 
 import io from 'socket.io-client/dist/socket.io';
-const socket = io('http://127.0.0.1:3000'); // your router ip address here instead of localhost
+const socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
 
 const HomeScreen = props => {
   const [gameBegun, setGameBegun] = useState(false);
@@ -43,6 +43,7 @@ const HomeScreen = props => {
   };
 
   useEffect(() => {
+    // socket to update users in a room
     socket.on('updateUserList', users => {
       console.log('current users', users);
 
@@ -55,19 +56,22 @@ const HomeScreen = props => {
       });
 
       setUsers(users);
-      socket.on('adminMessage', res => {
-        console.log(res.time, res.message);
-
-        setMessages(res);
-        console.log(adminMessages);
-      });
-
-      socket.on('gameData', res => {
-        setGameBegun(true);
-        console.log(res);
-      });
     });
-  });
+
+    // socket to receive message from server
+    socket.on('adminMessage', res => {
+      console.log(res.time, res.message);
+
+      setMessages(res);
+      console.log(adminMessages);
+    });
+
+    // socket to receive game data
+    socket.on('gameData', res => {
+      setGameBegun(true);
+      console.log(res);
+    });
+  }, []);
 
   const handleLeave = () => {
     socket.emit('leave', { room: room, name: name }, () => {
@@ -99,21 +103,17 @@ const HomeScreen = props => {
               data={adminMessages}
               renderItem={({ item }) => (
                 <View style={styles.checkboxContainer}>
-                  <Text key={item.index}>
+                  <Text>
                     {item.time}: {item.message}{' '}
                   </Text>
                 </View>
               )}
+              keyExtractor={(item, index) => index.toString()}
             />
           </ScrollView>
         </View>
       ) : room ? (
         <View>
-          <Text>User: {name}</Text>
-          <Text>Room: {room}</Text>
-          <Button onPress={handleReady} title={!isReady ? 'Ready?' : 'Not Ready'} />
-          <Button onPress={handleLeave} title="Go out"></Button>
-          <Text>List of users:</Text>
           <FlatList
             data={users}
             renderItem={({ item }) => (
@@ -124,6 +124,16 @@ const HomeScreen = props => {
                 <CheckBox disabled={true} style={styles.checkBox} checked={item.isReady} />
               </View>
             )}
+            ListHeaderComponent={
+              <View>
+                <Text>User: {name}</Text>
+                <Text>Room: {room}</Text>
+                <Button onPress={handleReady} title={!isReady ? 'Ready?' : 'Not Ready'} />
+                <Button onPress={handleLeave} title="Go out"></Button>
+                <Text>List of users:</Text>
+              </View>
+            }
+            keyExtractor={(item, index) => index.toString()}
           />
           <View>
             <FlatList
@@ -135,6 +145,7 @@ const HomeScreen = props => {
                   </Text>
                 </View>
               )}
+              keyExtractor={(item, index) => index.toString()}
             />
           </View>
         </View>

@@ -113,7 +113,7 @@ class Games {
         // Outlaws win if Sherif dies before the Outlaws or when there are still at least 1 Vice and 1 Renegade
         if((sherif.length === 0 && outlaws.length > 0) || (sherif.length === 0 && renegades.length > 0 && vices.length > 0)) {
             console.log('The outlaws win')
-            this.changeGameData(room, { 'winner': { roleId: 'O', players: outlaws } })
+            this.changeGameData(room, { 'winner': { roleId: 'O', players: game.players.filter(player => player.roleId === 'O') } })
         }
         // Renegade wins if he eliminated the Sherif at the final
         if(sherif.length === 0 && outlaws.length === 0 && vices.length === 0 && renegades.length === 1) {
@@ -123,7 +123,7 @@ class Games {
         // Sherif and the Vices win if they are alive
         if(sherif.length === 1 && outlaws.length === 0 && renegades.length === 0) {
             console.log('The Sherif wins')
-            this.changeGameData(room, { 'winner': { roleId: 'R', players: vices.concat(sherif) } })
+            this.changeGameData(room, { 'winner': { roleId: 'S', players: game.players.filter(player => player.roleId === 'V' || player.roleId === 'S') } })
         }
         else {
             console.log('conditions passed!')

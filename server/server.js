@@ -141,6 +141,7 @@ io.on('connection', (socket) => {
             
             // action in the turn
             games.useEffect(room, 'shoot', 2, position, position)
+            console.log('action happened ')
             console.log('Game history', games.getGame(room).players.map(player => ({ role: player.roleId, health: player.health })))
         }
 
@@ -228,33 +229,6 @@ io.on('connection', (socket) => {
         //
         console.log('an user left the room', params.room)
         callback();
-    });
-
-    /* socket.on('createMessage', (newMess, callback) => {
-        console.log(newMess);
-               
-        io.emit('newMessage', generateMessage(newMess.from, newMess.text));
-        callback();
-    }); */
-
-    socket.on('createMessage', (newMess, callback) => {
-        var user= users.getUser(socket.id);
-
-        if(user && isRealString(newMess.text)){
-            socket.emit('newMessageForSender', generateMessage(user.name, newMess.text));
-            socket.broadcast.to(user.room).emit('newMessage', generateMessage(user.name, newMess.text));
-         }
-            
-        callback();
-    });
-
-    socket.on('createLocationMessage', (coords) => {
-        var user = users.getUser(socket.id);
-
-        if(user){
-            socket.emit('newLocationMessageForSender', generateLocationMessage(user.name, coords.latitude, coords.longitude));
-            socket.broadcast.to(user.room).emit('newLocationMessage', generateLocationMessage(user.name, coords.latitude, coords.longitude));
-        }
     });
 
     socket.on('disconnect', () => {
