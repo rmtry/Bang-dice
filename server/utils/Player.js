@@ -15,19 +15,6 @@ class Player {
         this.health = (roleId === 'S') ? 10 : 8
         this.arrow = 0
     }
-
-    rollDice(amount) {
-        let results = []
-        if(amount > 0 || amount <= 5) {
-            for (let i = 0; i < amount; i++) {
-                results.push(Math.floor(Math.random() * 6))
-            }
-        } else {
-            throw new Error('Cannot have more than 5 dices and there should be minimum 1 dice')
-        }
-        return results
-    }
-
 }
 let players = []
 class Players {

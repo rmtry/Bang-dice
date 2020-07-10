@@ -88,11 +88,11 @@ io.on('connection', (socket) => {
         games.addGame(room, players, true)
         console.log('generated games', games)
 
-        let currentGame = games.getGame(room)
+        let currentGame = games.getGameData(room, socketId)
         console.log('current game', currentGame.players)
 
         // send the new generated game to client
-        io.to(room).emit('gameData', { ...currentGame, players: currentGame.players.filter(player => player.id === socketId) });
+        io.to(room).emit('gameData', currentGame);
         io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Game will start soon, prepare for the battle!'});
 
         // define the first turn
@@ -100,14 +100,20 @@ io.on('connection', (socket) => {
         
         // define the logic to switch the turn, each turn 5s 
         let turn = (position) => {
+            // change the current turn
+            games.changeGameData(room, { currentTurnIndex: position })
             // send the current turn data to the client
-            io.to(room).emit('gameData', { ...currentGame, players: currentGame.players.filter(player => player.id === socketId) });
+            currentGame = games.getGameData(room, socketId)
+            io.to(room).emit('gameData', currentGame);
             io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position});
 
             console.log('Turn of ', position)
 
             // execute after 5s
             setTimeout(() => {
+                // Should execute all the selected dices
+                games.executeDices(room)
+
                 console.log('Turn end ', position)
                 io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position + ' ended'});
 
@@ -137,10 +143,10 @@ io.on('connection', (socket) => {
                     }
                     io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game has ended, The ${winner} wins!`});
                 }
-            }, 5000)
+            }, 30000)
             
             // action in the turn
-            games.useEffect(room, 'shoot', 2, position, position)
+            // games.useEffect(room, 'shoot', 2, position, position)
             console.log('action happened ')
             console.log('Game history', games.getGame(room).players.map(player => ({ role: player.roleId, health: player.health })))
         }
@@ -153,7 +159,28 @@ io.on('connection', (socket) => {
     }
 
     socket.on('action', (params, callback) => {
-        console.log(`Action from Player: ${params.name}, index ${params.index}`)
+        console.log(`Action from Player: ${params.name}, index ${params.index}, type ${params.action}`)
+        // rollDice, saveDice, useDice, useAbility, event
+
+        if(games.checkTurn(params.room, socket.id)){
+            switch(params.action) {
+                case 'ROLLDICE':
+                    games.rollDices(params.room, params.index)
+                    break;
+                case 'KEEPDICE':
+                    games.keepDices(params.room, params.diceIndexes)
+                    break;
+                case 'USEDICE':
+                    games.keepDices(params.room, params.targetIndexes)
+                    break;
+            }
+            let currentGame = games.getGameData(params.room, socket.id)
+            io.to(params.room).emit('gameData', currentGame);
+        }
+        else {
+            socket.emit('userMessage', { message: `It is not your turn!` });
+        }
+        callback()
     })
 
     socket.on('join', (params, callback) => {
