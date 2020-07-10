@@ -73,12 +73,10 @@ const HomeScreen = props => {
       setGameBegun(true);
       if(res) setGameData(res)
       console.log(res)
+      if(player === undefined) setPlayer(res.players.find(player => player.userId === socket.id)) 
     });
   }, []);
 
-  useEffect(() => {
-    if(player === undefined && gameData !== undefined) setPlayer(gameData.players.find(player => player.userId === socket.id)) 
-  }, [player])
 
   const handleLeave = () => {
     socket.emit('leave', { room: room, name: name }, () => {
@@ -110,6 +108,21 @@ const HomeScreen = props => {
       {gameBegun ? (
         <View>
           <Text>The game has begun</Text>
+          {
+            gameData && (
+              <View>
+                <Text>{player !== undefined && player.index}</Text>
+                <Text>{gameData.dices[0].face}, {gameData.dices[0].rolled && 'saved!'}</Text>
+                <Text>{gameData.dices[1].face}, {gameData.dices[1].rolled && 'saved!'}</Text>
+                <Text>{gameData.dices[2].face}, {gameData.dices[2].rolled && 'saved!'}</Text>
+                <Text>{gameData.dices[3].face}, {gameData.dices[3].rolled && 'saved!'}</Text>
+                <Text>{gameData.dices[4].face}, {gameData.dices[4].rolled && 'saved!'}</Text>
+                <Button onPress={() => handleAction('ROLLDICE')} title={'Roll'} disabled={(gameData.turnRoll > 2 && player && player.index === gameData.currentTurnIndex) || player && player.index !== gameData.currentTurnIndex}></Button>
+                <Button onPress={() => handleAction('keep')} title={'Save'}></Button>
+
+              </View>
+            )
+          }
           <ScrollView style={styles.messagesContainer}>
             <FlatList
               data={adminMessages}
@@ -120,21 +133,6 @@ const HomeScreen = props => {
                   </Text>
                 </View>
               )}
-              ListHeaderComponent={
-                gameData && (
-                  <View>
-                    <Text>{player !== undefined && player.index}</Text>
-                    <Text>{gameData.dices[0].face}, {gameData.dices[0].rolled && 'saved!'}</Text>
-                    <Text>{gameData.dices[1].face}, {gameData.dices[1].rolled && 'saved!'}</Text>
-                    <Text>{gameData.dices[2].face}, {gameData.dices[2].rolled && 'saved!'}</Text>
-                    <Text>{gameData.dices[3].face}, {gameData.dices[3].rolled && 'saved!'}</Text>
-                    <Text>{gameData.dices[4].face}, {gameData.dices[4].rolled && 'saved!'}</Text>
-                    <Button onPress={() => handleAction('ROLLDICE')} title={'Roll'}></Button>
-                    <Button onPress={() => handleAction('keep')} title={'Save'}></Button>
-
-                  </View>
-                )
-              }
               keyExtractor={(item, index) => index.toString()}
             />
           </ScrollView>

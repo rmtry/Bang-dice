@@ -8,43 +8,52 @@ let games=[]
     history: []
 }]
 
-const defaultDices = [
-    {
-        index: 0,
-        face: undefined,
-        rolled: false,
-        targetIndex: undefined,
-        used: false
-    },
-    {
-        index: 1,
-        face: undefined,
-        rolled: false,
-        targetIndex: undefined,
-        used: false
-    },
-    {
-        index: 2,
-        face: undefined,
-        rolled: false,
-        targetIndex: undefined,
-        used: false
-    },
-    {
-        index: 3,
-        face: undefined,
-        rolled: false,
-        targetIndex: undefined,
-        used: false
-    },
-    {
-        index: 4,
-        face: undefined,
-        rolled: false,
-        targetIndex: undefined,
-        used: false
-    },
-]
+class Dices {
+    constructor(){
+        this.dices = [
+            {
+                index: 0,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 1,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 2,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 3,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 4,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+        ]
+    }
+
+    getDices() {
+        return this.dices
+    }
+}
+
 
 class Games {
     constructor(){
@@ -54,7 +63,7 @@ class Games {
     addGame(room, players, start = false, history = [], arrows = 9) {
         let game = { room, players, start, history, arrows }
         game.winner = undefined
-        game.dices = defaultDices
+        game.dices = new Dices().getDices()
         game.turnRoll = 0
         // find sherif to get the first player index
         let sherif = game.players.find(player => player.roleId === 'S')
@@ -81,17 +90,21 @@ class Games {
                 game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) shot ${game.players[targetIndex].index} (role ${game.players[targetIndex].roleId}, character ${game.players[targetIndex].characterId}) ${amount} hp`)
                 break;
             case 'dynamite':
-                game.players[from].health -= 1
+                console.log('CURRENT health', game.players[fromIndex].health)
+                game.players[fromIndex].health -= 1
+                console.log('AFTER health', game.players[fromIndex].health)
                 game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) got Dynamite!`)
                 break;
             case 'gatling':
                 game.players.map(player => {
-                    if (player.index !== from) player.health -= 1
+                    if (player.index !== fromIndex) player.health -= 1
                 })
                 game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) use Gatling Gun!`)
                 break;
             case 'arrow':
-                game.players[from].arrow += amount
+                console.log('arrow!', game.players[fromIndex].health)
+
+                game.players[fromIndex].arrow += amount
                 game.arrows = game.arrows - amount
                 if(game.arrows <= 0) {
                     game.players.map(player => {
@@ -260,7 +273,7 @@ class Games {
     }
 
     resetDices() {
-        let dices  = defaultDices
+        let dices  = new Dice()
         this.changeGameData(room, { dices })
     }
 
@@ -268,17 +281,18 @@ class Games {
         let game = this.getGame(room)
         let dices = game.dices
         let parts = 0
+        let dynamites = 0
         for(let i = 0; i< dices.length; i++) {
-            if(dices[i].rolled = true && dices[i].targetIndex) {
+            if(dices[i].rolled === true) {
                 switch(dices[i].face) {
                     case 'shoot1':
-                        this.useEffect(room, 'shoot', 1, playerIndex, dices[i].targetIndex)
+                        this.useEffect(room, 'shoot', 1, playerIndex, 0)
                         break;
                     case 'shoot2':
-                        this.useEffect(room, 'shoot', 1, playerIndex, dices[i].targetIndex)
+                        this.useEffect(room, 'shoot', 1, playerIndex, 0)
                         break;
                     case 'beer':
-                        this.useEffect(room, 'heal', 1, playerIndex, dices[i].targetIndex)
+                        this.useEffect(room, 'heal', 1, playerIndex, 0)
                         break;  
                     case 'part':
                         // check ability first
@@ -288,12 +302,21 @@ class Games {
                             parts = 0
                         }
                         break;
+                    case 'dynamite':
+                            // check ability first
+                        dynamites++
+                        if(dynamites >= 3) {
+                            console.log('USER GOT DYNAMITED!')
+                            this.useEffect(room, 'dynamite', 1, playerIndex)
+                            dynamites = 0
+                        }
+                        break;
                     default: 
                         break;                
                 }
             }
         }
-        this.changeGameData(room, { turnRoll: 0 })
+        this.changeGameData(room, { turnRoll: 0, dices: new Dices().getDices() })
     }
 }
 module.exports = { Games };

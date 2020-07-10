@@ -112,7 +112,8 @@ io.on('connection', (socket) => {
             // execute after 5s
             setTimeout(() => {
                 // Should execute all the selected dices
-                games.executeDices(room)
+                console.log('EXECUTING DICES... ', position)
+                games.executeDices(room, position)
 
                 console.log('Turn end ', position)
                 io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position + ' ended'});
@@ -143,7 +144,7 @@ io.on('connection', (socket) => {
                     }
                     io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game has ended, The ${winner} wins!`});
                 }
-            }, 30000)
+            }, 10000)
             
             // action in the turn
             // games.useEffect(room, 'shoot', 2, position, position)
