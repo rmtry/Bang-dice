@@ -31,6 +31,8 @@ const HomeScreen = props => {
   const [name, setName] = useState();
   const [users, setUsers] = useState([]);
   const [isReady, setIsReady] = useState(false);
+  const [gameData, setGameData] = useState(undefined);
+  const [player, setPlayer] = useState(undefined)
 
   /* setMessages = message => {
       setState(prevState => ({ adminMessages: prev   adminMessages.concat([message]) }));
@@ -38,7 +40,7 @@ const HomeScreen = props => {
 
   const setMessages = message => {
     setAdminMessages(prev => {
-      return prev.concat([message]);
+      return [message].concat(prev);
     });
   };
 
@@ -69,9 +71,14 @@ const HomeScreen = props => {
     // socket to receive game data
     socket.on('gameData', res => {
       setGameBegun(true);
-      console.log(res);
+      if(res) setGameData(res)
+      console.log(res)
     });
   }, []);
+
+  useEffect(() => {
+    if(player === undefined && gameData !== undefined) setPlayer(gameData.players.find(player => player.userId === socket.id)) 
+  }, [player])
 
   const handleLeave = () => {
     socket.emit('leave', { room: room, name: name }, () => {
@@ -82,6 +89,11 @@ const HomeScreen = props => {
   const handleReady = () => {
     socket.emit('ready', { id: socket.id, room: room, isReady: !isReady }, () => {});
   };
+
+  const handleAction = (type) => {
+    socket.emit('action', {room: room, action: type, name: name, index: gameData.players[0].index}, () => {})
+  }
+
 
   const onSubmit = values => {
     console.log('on submit', values);
@@ -108,6 +120,21 @@ const HomeScreen = props => {
                   </Text>
                 </View>
               )}
+              ListHeaderComponent={
+                gameData && (
+                  <View>
+                    <Text>{player !== undefined && player.index}</Text>
+                    <Text>{gameData.dices[0].face}, {gameData.dices[0].rolled && 'saved!'}</Text>
+                    <Text>{gameData.dices[1].face}, {gameData.dices[1].rolled && 'saved!'}</Text>
+                    <Text>{gameData.dices[2].face}, {gameData.dices[2].rolled && 'saved!'}</Text>
+                    <Text>{gameData.dices[3].face}, {gameData.dices[3].rolled && 'saved!'}</Text>
+                    <Text>{gameData.dices[4].face}, {gameData.dices[4].rolled && 'saved!'}</Text>
+                    <Button onPress={() => handleAction('ROLLDICE')} title={'Roll'}></Button>
+                    <Button onPress={() => handleAction('keep')} title={'Save'}></Button>
+
+                  </View>
+                )
+              }
               keyExtractor={(item, index) => index.toString()}
             />
           </ScrollView>
