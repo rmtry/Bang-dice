@@ -21,7 +21,7 @@ import { Formik } from 'formik';
 import { MonoText } from '../components/StyledText';
 
 import io from 'socket.io-client/dist/socket.io';
-const socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
+const socket = io('http://127.0.0.1:3000'); // your router ip address here instead of localhost
 
 const HomeScreen = props => {
   const [gameBegun, setGameBegun] = useState(false);
