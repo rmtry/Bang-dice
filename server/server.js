@@ -186,22 +186,33 @@ io.on('connection', socket => {
 
     socket.join(params.room);
     users.removeUser(socket.id);
-    users.addUser(socket.id, params.name, params.room);
-    console.log('cc', Object.keys(users.users).length);
-    let now = new Date();
-    io.to(params.room).emit('adminMessage', {
-      time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
-      message: `${params.name} joined the room`,
-    });
-    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
-    // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
-    socket.emit('statusMessage', { from: 'Admin', message: 'Welcome ' + params.name + ' to the game!' });
+    if (Object.keys(users.users).length < 8) {
+      users.addUser(socket.id, params.name, params.room);
 
-    // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
-    //
-    //
+      console.log('cc', Object.keys(users.users).length);
+      let now = new Date();
+      io.to(params.room).emit('adminMessage', {
+        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+        message: `${params.name} joined the room`,
+      });
+      io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
+      // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
+      socket.emit('statusMessage', { from: 'Admin', message: 'Welcome ' + params.name + ' to the game!' });
+
+      // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
+      //
+      //
+    } else if (Object.keys(users.users).length >= 8) {
+      console.log('cc1', Object.keys(users.users).length);
+
+      let now = new Date();
+      io.to(params.room).emit('adminMessage', {
+        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+        message: `Room is full`,
+      });
+    }
     console.log(users.getUser(params.room));
     callback();
   });
