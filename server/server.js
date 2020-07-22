@@ -16,7 +16,8 @@ var server = http.createServer(app);
 var io = socketIO(server);
 var users = new Users();
 var games = new Games();
-
+let count = 0;
+let room = 0;
 app.use(express.static(publicPath));
 
 let gameBegin;
@@ -73,6 +74,17 @@ generatePlayers = (room, users) => {
 };
 
 io.on('connection', socket => {
+  /*  if (Object.keys(users.users).length >= 4) {
+    console.log('stop', Object.keys(users.users).length);
+    socket.emit('stop', {
+      doStop: true,
+    });
+  } */
+  /* if (count > 4) {
+    console.log('count1' + count);
+    users.removeUser(socket.id);
+    socket.disconnect();
+  } */
   console.log('new user');
 
   const startTheGame = (room, socketId) => {
@@ -176,20 +188,30 @@ io.on('connection', socket => {
   socket.on('action', (params, callback) => {
     console.log(`Action from Player: ${params.name}, index ${params.index}`);
   });
-
+  // if (Object.keys(users.users).length < 4) {
+  console.log('number', Object.keys(users.users).length);
   socket.on('join', (params, callback) => {
     /*
-        if (!isRealString(params.name) || !isRealString(params.room)) {
-            return callback('Name and room name are required');
-        }
-        */
+          if (!isRealString(params.name) || !isRealString(params.room)) {
+              return callback('Name and room name are required');
+          }
+          */
 
     socket.join(params.room);
     users.removeUser(socket.id);
 
-    if (Object.keys(users.users).length < 8) {
-      users.addUser(socket.id, params.name, params.room);
+    users.addUser(socket.id, params.name, params.room);
+    console.log('sid', socket.id);
+    count = Object.keys(users.getUserList(params.room)).length;
+    room = params.room;
 
+    console.log('count', count);
+    console.log('room', params.room);
+    if (Object.keys(users.getUserList(params.room)).length > 8) {
+      users.removeUser(socket.id);
+      io.to(params.room).emit('user.count', { count, room });
+    } else {
+      io.to(params.room).emit('user.count', { count, room });
       console.log('cc', Object.keys(users.users).length);
       let now = new Date();
       io.to(params.room).emit('adminMessage', {
@@ -204,18 +226,20 @@ io.on('connection', socket => {
       // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
       //
       //
-    } else if (Object.keys(users.users).length >= 8) {
-      console.log('cc1', Object.keys(users.users).length);
-
-      let now = new Date();
-      io.to(params.room).emit('adminMessage', {
-        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
-        message: `Room is full`,
-      });
+      /* } else if (Object.keys(users.users).length >= 4) {
+              console.log('cc1', Object.keys(users.users).length);
+        
+              let now = new Date();
+              io.to(params.room).emit('adminMessage', {
+                time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+                message: `Room is full`,
+              });
+            } */
+      console.log(users.getUser(params.room));
+      callback();
     }
-    console.log(users.getUser(params.room));
-    callback();
   });
+  //}
 
   socket.on('ready', (params, callback) => {
     users.readyUser(params.id, params.room, params.isReady);
@@ -260,7 +284,6 @@ io.on('connection', socket => {
             return callback('Name and room name are required');
         }
         */
-
     socket.leave(params.room);
     users.removeUser(socket.id, params.name, params.room);
     let now = new Date();

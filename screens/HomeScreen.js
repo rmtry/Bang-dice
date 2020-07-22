@@ -13,6 +13,7 @@ import {
   FlatList,
   AsyncStorage,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { CheckBox } from 'native-base';
 // import { ScrollView } from 'react-native-gesture-handler';
@@ -31,6 +32,22 @@ const HomeScreen = props => {
   const [name, setName] = useState();
   const [users, setUsers] = useState([]);
   const [isReady, setIsReady] = useState(false);
+  const signupForm = (
+    <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
+      {({ handleChange, handleBlur, handleSubmit, values }) => {
+        return (
+          <View>
+            <Text>Room</Text>
+            <TextInput onChangeText={handleChange('room')} onBlur={handleBlur('room')} value={values.room} />
+            <Text>User</Text>
+            <TextInput onChangeText={handleChange('name')} onBlur={handleBlur('name')} value={values.name} />
+            <Button onPress={handleSubmit} title="Go" />
+          </View>
+        );
+      }}
+    </Formik>
+  );
+  const [cmp, setCmp] = useState(signupForm);
 
   /* setMessages = message => {
       setState(prevState => ({ adminMessages: prev   adminMessages.concat([message]) }));
@@ -43,6 +60,18 @@ const HomeScreen = props => {
   };
 
   useEffect(() => {
+    socket.on('user.count', user => {
+      console.log('users', user.count);
+      console.log('users Room', user.room);
+      if (user.count > 8) {
+        setCmp(
+          <div>
+            <p>Full</p>
+            <Button onPress={() => setCmp(signupForm)} title="Go out"></Button>
+          </div>,
+        );
+      }
+    });
     // socket to update users in a room
     socket.on('updateUserList', users => {
       console.log('current users', users);
@@ -52,6 +81,7 @@ const HomeScreen = props => {
         user.index = i;
         i++;
         if (user.id === socket.id) setIsReady(user.isReady);
+
         return user;
       });
 
@@ -85,8 +115,11 @@ const HomeScreen = props => {
 
   const onSubmit = values => {
     console.log('on submit', values);
+
     socket.emit('join', values, () => {
       console.log('emit sucess!');
+      console.log(values.room);
+
       setRoom(values.room);
       setName(values.name);
       setIsReady(false);
@@ -150,19 +183,7 @@ const HomeScreen = props => {
           </View>
         </View>
       ) : (
-        <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
-          {({ handleChange, handleBlur, handleSubmit, values }) => {
-            return (
-              <View>
-                <Text>Room</Text>
-                <TextInput onChangeText={handleChange('room')} onBlur={handleBlur('room')} value={values.room} />
-                <Text>User</Text>
-                <TextInput onChangeText={handleChange('name')} onBlur={handleBlur('name')} value={values.name} />
-                <Button onPress={handleSubmit} title="Go" />
-              </View>
-            );
-          }}
-        </Formik>
+        cmp
       )}
     </View>
   );
