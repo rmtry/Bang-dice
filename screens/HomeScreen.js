@@ -15,6 +15,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import Modal from 'react-native-modal';
 import { CheckBox } from 'native-base';
 // import { ScrollView } from 'react-native-gesture-handler';
 import { Formik } from 'formik';
@@ -32,6 +33,7 @@ const HomeScreen = props => {
   const [name, setName] = useState();
   const [users, setUsers] = useState([]);
   const [isReady, setIsReady] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const signupForm = (
     <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
       {({ handleChange, handleBlur, handleSubmit, values }) => {
@@ -47,7 +49,28 @@ const HomeScreen = props => {
       }}
     </Formik>
   );
+
+  const modalCmp = (
+    <Modal
+      backdropColor="black"
+      backdropOpacity={1}
+      style={{ borderWidth: 0, borderColor: 'none' }}
+      isVisible={modalVisible}
+    >
+      <View>
+        <ActivityIndicator style={{ justifyContent: 'center', alignItems: 'center' }} />
+      </View>
+    </Modal>
+  );
   const [cmp, setCmp] = useState(signupForm);
+
+  const showModal = () => {
+    setModalVisible(true);
+    setTimeout(() => {
+      setModalVisible(false);
+      console.log('cc dmm');
+    }, 2000);
+  };
 
   /* setMessages = message => {
       setState(prevState => ({ adminMessages: prev   adminMessages.concat([message]) }));
@@ -63,7 +86,7 @@ const HomeScreen = props => {
     socket.on('user.count', user => {
       console.log('users', user.count);
       console.log('users Room', user.room);
-      if (user.count > 8) {
+      if (user.count > 4) {
         setCmp(
           <div>
             <p>Full</p>
@@ -115,7 +138,7 @@ const HomeScreen = props => {
 
   const onSubmit = values => {
     console.log('on submit', values);
-
+    showModal();
     socket.emit('join', values, () => {
       console.log('emit sucess!');
       console.log(values.room);
@@ -128,6 +151,12 @@ const HomeScreen = props => {
 
   return (
     <View style={styles.container}>
+      {/* <View style={styles.modal}>
+        <Modal transparent presentationStyle="fullScreen" animationType="slide" visible={modalVisible}>
+          <ActivityIndicator style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
+        </Modal>
+      </View> */}
+
       {gameBegun ? (
         <View>
           <Text>The game has begun</Text>
@@ -146,7 +175,8 @@ const HomeScreen = props => {
           </ScrollView>
         </View>
       ) : room ? (
-        <View>
+        <View style={{ flex: 1 }}>
+          {modalCmp}
           <FlatList
             data={users}
             renderItem={({ item }) => (
@@ -224,6 +254,22 @@ function handleHelpPress() {
 }
 
 const styles = StyleSheet.create({
+  modal: {
+    flex: 1,
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
