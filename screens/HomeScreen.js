@@ -176,7 +176,7 @@ const HomeScreen = props => {
         </View>
       ) : room ? (
         <View style={{ flex: 1 }}>
-          {modalCmp}
+          {/*  {modalCmp} */}
           <FlatList
             data={users}
             renderItem={({ item }) => (
