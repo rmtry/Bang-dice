@@ -17,7 +17,6 @@ import {
 } from 'react-native';
 import { CheckBox, Input } from 'native-base';
 import Modal from 'react-native-modal';
-import { CheckBox } from 'native-base';
 // import { ScrollView } from 'react-native-gesture-handler';
 import { Formik } from 'formik';
 
@@ -41,12 +40,24 @@ const HomeScreen = props => {
     <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
       {({ handleChange, handleBlur, handleSubmit, values }) => {
         return (
-          <View>
-            <Text>Room</Text>
-            <TextInput onChangeText={handleChange('room')} onBlur={handleBlur('room')} value={values.room} />
-            <Text>User</Text>
-            <TextInput onChangeText={handleChange('name')} onBlur={handleBlur('name')} value={values.name} />
-            <Button onPress={handleSubmit} title="Go" />
+          <View style={styles.miniForm}>
+            <Text style={styles.inputLabel}>Room</Text>
+            <TextInput
+              style={styles.textInput}
+              onChangeText={handleChange('room')}
+              onBlur={handleBlur('room')}
+              value={values.room}
+            />
+            <Text style={styles.inputLabel}>User</Text>
+            <TextInput
+              style={styles.textInput}
+              onChangeText={handleChange('name')}
+              onBlur={handleBlur('name')}
+              value={values.name}
+            />
+            <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+              <Text style={styles.buttonTitle}>GO</Text>
+            </TouchableOpacity>
           </View>
         );
       }}
@@ -264,33 +275,7 @@ const HomeScreen = props => {
       ) : (
         <View style={styles.roomContainer}>
           <View style={styles.playerWrapper}></View>
-          <View style={styles.gameWrapper}>
-            <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
-              {({ handleChange, handleBlur, handleSubmit, values }) => {
-                return (
-                  <View style={styles.miniForm}>
-                    <Text style={styles.inputLabel}>Room</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      onChangeText={handleChange('room')}
-                      onBlur={handleBlur('room')}
-                      value={values.room}
-                    />
-                    <Text style={styles.inputLabel}>User</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      onChangeText={handleChange('name')}
-                      onBlur={handleBlur('name')}
-                      value={values.name}
-                    />
-                    <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-                      <Text style={styles.buttonTitle}>GO</Text>
-                    </TouchableOpacity>
-                  </View>
-                );
-              }}
-            </Formik>
-          </View>
+          <View style={styles.gameWrapper}>{cmp}</View>
           <View style={styles.headerWrapper}>
             <Text style={styles.textTitle}>Join Room</Text>
           </View>
