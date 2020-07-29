@@ -8,6 +8,53 @@ let games=[]
     history: []
 }]
 
+class Dices {
+    constructor(){
+        this.dices = [
+            {
+                index: 0,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 1,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 2,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 3,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+            {
+                index: 4,
+                face: undefined,
+                rolled: false,
+                targetIndex: undefined,
+                used: false
+            },
+        ]
+    }
+
+    getDices() {
+        return this.dices
+    }
+}
+
+
 class Games {
     constructor(){
         this.games = []
@@ -16,6 +63,8 @@ class Games {
     addGame(room, players, start = false, history = [], arrows = 9) {
         let game = { room, players, start, history, arrows }
         game.winner = undefined
+        game.dices = new Dices().getDices()
+        game.turnRoll = 0
         // find sherif to get the first player index
         let sherif = game.players.find(player => player.roleId === 'S')
         if (sherif) game.currentTurnIndex = sherif.index
@@ -41,18 +90,22 @@ class Games {
                 game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) shot ${game.players[targetIndex].index} (role ${game.players[targetIndex].roleId}, character ${game.players[targetIndex].characterId}) ${amount} hp`)
                 break;
             case 'dynamite':
-                game.players[from].health -= 1
+                console.log('CURRENT health', game.players[fromIndex].health)
+                game.players[fromIndex].health -= 1
+                console.log('AFTER health', game.players[fromIndex].health)
                 game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) got Dynamite!`)
                 break;
             case 'gatling':
                 game.players.map(player => {
-                    if (player.index !== from) player.health -= 1
+                    if (player.index !== fromIndex) player.health -= 1
                 })
                 game.history.push(`Player ${game.players[fromIndex].index} (role ${game.players[fromIndex].roleId}, character ${game.players[fromIndex].characterId}) use Gatling Gun!`)
                 break;
             case 'arrow':
-                game.players[from].arrow += amount
-                game.arrows = games.arrows - amount
+                console.log('arrow!', game.players[fromIndex].health)
+
+                game.players[fromIndex].arrow += amount
+                game.arrows = game.arrows - amount
                 if(game.arrows <= 0) {
                     game.players.map(player => {
                         player.health = player.health - player.arrow
@@ -72,9 +125,19 @@ class Games {
         return this.games.find(game => game.room === room)
     }
 
+    getGameData(room, socketId) {
+        let game = this.getGame(room)
+        let players = game.players.map(player => {
+            if(socketId !== player.userId) return { ...player, roleId: undefined }
+            return player
+        })
+
+        return { ...game, players: players }
+    }
+
     changeGameData(room, data) {
         let index = this.games.findIndex(g => g.room === room)
-        console.log(index, 'data will be overwriten: ', data)
+        // console.log(index, 'data will be overwriten: ', data)
         if(index !== -1) {
             this.games[index] = { ...this.games[index], ...data }
         }
@@ -87,6 +150,17 @@ class Games {
         return game.winner ? false : true
     }
     
+    checkTurn(room, socketId) {
+        let game = this.getGame(room)
+        console.log('socket id', socketId)
+        let currentPlayer = game.players.find(player => player.index === game.currentTurnIndex)
+        console.log('turn player id', currentPlayer.userId)
+        if (socketId === currentPlayer.userId) {
+            return true
+        } else {
+            return false
+        }
+    }
 
     checkGameStatus(room) {
         let game = this.games.find(game => game.room === room)
@@ -128,6 +202,121 @@ class Games {
         else {
             console.log('conditions passed!')
         }
+    }
+
+    // for the dices
+    getFace(face) {
+        switch(face) {
+            case 1:
+                return "shoot1";
+            case 2:
+                return "shoot2";
+            case 3:
+                return "beer";
+            case 4:
+                return "dynamite";
+            case 5:
+                return "arrow";
+            case 0:
+                return "part";
+            default:
+                return ''
+        }
+    }
+
+    getDices(room) {
+        let game = this.getGame(room)
+        return game.dices
+    }
+
+    rollDices(room, playerIndex) {
+        let game = this.getGame(room)
+        let dices = game.dices.map(dice => {
+            if(!dice.rolled && game.turnRoll < 3) {
+                dice.face = this.getFace(Math.floor(Math.random() * 6))
+                if (dice.face === 'dynamite') dice.rolled = true
+                else if (dice.face === 'arrow') this.useEffect(room, 'arrow', 1, playerIndex)
+            }
+            return dice
+        })
+        console.log('Rolled!, ', dices.map(dice => dice.face).join('-'))
+        let turnRoll = game.turnRoll += 1
+        this.changeGameData(room, { dices, turnRoll })
+    }
+
+    keepDices(room, diceIndexes) {
+        let game = this.getGame(room)
+        diceIndexes.map(i => {
+            game.dices[i].rolled = true
+            return ''
+        })
+    }
+
+    useDices(room, targetIndexes) {
+        let game = this.getGame(room)
+        let dices = game.dices.map((dice, index) => {
+            dice.targetIndex = targetIndexes[index]
+            // define conditions
+            return dice
+        })
+        this.changeGameData(room, { dices })
+    }
+
+    finishDice(diceIndexes){
+        let game = this.getGame(room)
+
+        let dices = game.dices.map((dice, index) => {
+            dice.used = diceIndexes[index]
+            return dice
+        })
+        this.changeGameData(room, { dices })
+    }
+
+    resetDices() {
+        let dices  = new Dice()
+        this.changeGameData(room, { dices })
+    }
+
+    executeDices(room, playerIndex) {
+        let game = this.getGame(room)
+        let dices = game.dices
+        let parts = 0
+        let dynamites = 0
+        for(let i = 0; i< dices.length; i++) {
+            if(dices[i].rolled === true) {
+                switch(dices[i].face) {
+                    case 'shoot1':
+                        this.useEffect(room, 'shoot', 1, playerIndex, 0)
+                        break;
+                    case 'shoot2':
+                        this.useEffect(room, 'shoot', 1, playerIndex, 0)
+                        break;
+                    case 'beer':
+                        this.useEffect(room, 'heal', 1, playerIndex, 0)
+                        break;  
+                    case 'part':
+                        // check ability first
+                        parts++
+                        if(parts >= 3) {
+                            this.useEffect(room, 'gatling', 1, playerIndex)
+                            parts = 0
+                        }
+                        break;
+                    case 'dynamite':
+                            // check ability first
+                        dynamites++
+                        if(dynamites >= 3) {
+                            console.log('USER GOT DYNAMITED!')
+                            this.useEffect(room, 'dynamite', 1, playerIndex)
+                            dynamites = 0
+                        }
+                        break;
+                    default: 
+                        break;                
+                }
+            }
+        }
+        this.changeGameData(room, { turnRoll: 0, dices: new Dices().getDices() })
     }
 }
 module.exports = { Games };
