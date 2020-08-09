@@ -16,7 +16,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CheckBox, Input } from 'native-base';
-import Modal from 'react-native-modal';
+let Modal;
+if (Platform.OS === 'web') {
+  Modal = require('modal-enhanced-react-native-web').default;
+} else if (Platform.OS === 'ios' || Platform.OS === 'android') {
+  Modal = require('react-native-modal').default;
+}
+//import Modal from (Platform.OS==='web'?'modal-enhanced-react-native-web':'react-native-modal');
+
+//import Modal from 'react-native-modal';
 // import { ScrollView } from 'react-native-gesture-handler';
 import { Formik } from 'formik';
 
@@ -35,60 +43,29 @@ const HomeScreen = props => {
   const [isReady, setIsReady] = useState(false);
   const [gameData, setGameData] = useState(undefined);
   const [player, setPlayer] = useState(undefined);
-  const [modalVisible, setModalVisible] = useState(false);
-  const signupForm = (
-    <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
-      {({ handleChange, handleBlur, handleSubmit, values }) => {
-        return (
-          <View style={styles.miniForm}>
-            <Text style={styles.inputLabel}>Room</Text>
-            <TextInput
-              style={styles.textInput}
-              onChangeText={handleChange('room')}
-              onBlur={handleBlur('room')}
-              value={values.room}
-            />
-            <Text style={styles.inputLabel}>User</Text>
-            <TextInput
-              style={styles.textInput}
-              onChangeText={handleChange('name')}
-              onBlur={handleBlur('name')}
-              value={values.name}
-            />
-            <TouchableOpacity onPress={handleSubmit} style={styles.button}>
-              <Text style={styles.buttonTitle}>GO</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      }}
-    </Formik>
-  );
 
+  const [modalMessage, setModalMessage] = useState();
+  const [modalVisible, setModalVisible] = useState(false);
   const modalCmp = (
     <Modal
+      animationIn="fadeIn"
+      animationOut="fadeOut"
       backdropColor="black"
-      backdropOpacity={1}
-      style={{ borderWidth: 0, borderColor: 'none' }}
+      backdropOpacity={0.7}
+      coverScreen={false}
       isVisible={modalVisible}
     >
-      <View>
-        <ActivityIndicator style={{ justifyContent: 'center', alignItems: 'center' }} />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <View style={styles.modal}>{modalMessage}</View>
       </View>
     </Modal>
   );
-  const [cmp, setCmp] = useState(signupForm);
-
-  const showModal = () => {
-    setModalVisible(true);
-    setTimeout(() => {
-      setModalVisible(false);
-      console.log('cc dmm');
-    }, 2000);
-  };
-
-  /* setMessages = message => {
-      setState(prevState => ({ adminMessages: prev   adminMessages.concat([message]) }));
-  }; */
 
   const setMessages = message => {
     setAdminMessages(prev => {
@@ -97,16 +74,43 @@ const HomeScreen = props => {
   };
 
   useEffect(() => {
-    socket.on('user.count', user => {
+    socket.on('checkCurrentUser', user => {
       console.log('users', user.count);
       console.log('users Room', user.room);
-      if (user.count > 8) {
-        setCmp(
-          <div>
-            <p>Full</p>
-            <Button onPress={() => setCmp(signupForm)} title="Go out"></Button>
-          </div>,
+      if (user.count > 4) {
+        setModalMessage(
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              //  flexDirection: 'row',
+            }}
+          >
+            <Text style={{ marginTop: 90 }}>Full</Text>
+
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalButton}>
+              <Text style={styles.buttonTitle}>Go out</Text>
+            </TouchableOpacity>
+          </View>,
         );
+        setModalVisible(true);
+      } else {
+        setModalMessage(
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <ActivityIndicator />
+          </View>,
+        );
+        setModalVisible(true);
+        setTimeout(() => {
+          setModalVisible(false);
+        }, 1000);
       }
     });
     // socket to update users in a room
@@ -159,7 +163,6 @@ const HomeScreen = props => {
 
   const onSubmit = values => {
     console.log('on submit', values);
-    showModal();
     socket.emit('join', values, () => {
       console.log('emit sucess!');
       console.log(values.room);
@@ -172,12 +175,6 @@ const HomeScreen = props => {
 
   return (
     <View style={styles.container}>
-      {/* <View style={styles.modal}>
-        <Modal transparent presentationStyle="fullScreen" animationType="slide" visible={modalVisible}>
-          <ActivityIndicator style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} />
-        </Modal>
-      </View> */}
-
       {gameBegun ? (
         <View styles={styles.roomContainer}>
           <View styles={styles.dash}></View>
@@ -231,6 +228,7 @@ const HomeScreen = props => {
         </View>
       ) : room ? (
         <View style={styles.roomContainer}>
+          {modalCmp}
           <View style={styles.playerWrapper}>
             <Text style={styles.textTitle}>User: {name}</Text>
             <View style={styles.miniForm}>
@@ -245,8 +243,8 @@ const HomeScreen = props => {
 
           <View style={styles.gameWrapper}>
             <View style={styles.usersWrapper}>
-              {users.map(item => (
-                <View style={styles[`userWrapper${item.index > 4 ? 'Right' : 'Left'}`]}>
+              {users.map((item, index) => (
+                <View key={index} style={styles[`userWrapper${item.index > 4 ? 'Right' : 'Left'}`]}>
                   <Text styles={styles.TextInput} key={item.index} key={item.index}>
                     {item.index}: {item.name}{' '}
                   </Text>
@@ -274,8 +272,35 @@ const HomeScreen = props => {
         </View>
       ) : (
         <View style={styles.roomContainer}>
+          {modalCmp}
           <View style={styles.playerWrapper}></View>
-          <View style={styles.gameWrapper}>{cmp}</View>
+          <View style={styles.gameWrapper}>
+            <Formik initialValues={{ room: room, name: name }} onSubmit={values => onSubmit(values)}>
+              {({ handleChange, handleBlur, handleSubmit, values }) => {
+                return (
+                  <View style={styles.miniForm}>
+                    <Text style={styles.inputLabel}>Room</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      onChangeText={handleChange('room')}
+                      onBlur={handleBlur('room')}
+                      value={values.room}
+                    />
+                    <Text style={styles.inputLabel}>User</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      onChangeText={handleChange('name')}
+                      onBlur={handleBlur('name')}
+                      value={values.name}
+                    />
+                    <TouchableOpacity onPress={handleSubmit} style={styles.button}>
+                      <Text style={styles.buttonTitle}>GO</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }}
+            </Formik>
+          </View>
           <View style={styles.headerWrapper}>
             <Text style={styles.textTitle}>Join Room</Text>
           </View>
@@ -321,8 +346,25 @@ function handleHelpPress() {
 
 const styles = StyleSheet.create({
   modal: {
-    flex: 1,
-    margin: 20,
+    width: 300,
+    height: 300,
+    shadowColor: 'black',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+
+    shadowRadius: 6,
+    shadowOpacity: 0.26,
+    elevation: 5,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 10,
+
+    //flex: 1,
+    /*  margin: 100,
+    width: '20%',
+    height: '20%',
     backgroundColor: 'white',
     borderRadius: 20,
     padding: 35,
@@ -334,8 +376,11 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 5, */
   },
+
+  //card: { width: '80%', minWidth: 300, maxWidth: '95%', alignItems: 'center' },
+
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -443,6 +488,15 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 12,
     borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButton: {
+    height: 52,
+    backgroundColor: '#2196F3',
+    padding: 12,
+    marginTop: 100,
+    borderRadius: 10,
+    alignSelf: 'center',
     alignItems: 'center',
   },
   buttonCancel: {

@@ -18,6 +18,7 @@ var users = new Users();
 var games = new Games();
 let count = 0;
 let room = 0;
+let readyUsers = [];
 app.use(express.static(publicPath));
 
 let gameBegin;
@@ -207,11 +208,11 @@ io.on('connection', socket => {
 
     console.log('count', count);
     console.log('room', params.room);
-    if (Object.keys(users.getUserList(params.room)).length > 8) {
+    if (Object.keys(users.getUserList(params.room)).length > 4) {
       users.removeUser(socket.id);
-      io.to(params.room).emit('user.count', { count, room });
+      io.to(socket.id).emit('checkCurrentUser', { count, room });
     } else {
-      io.to(params.room).emit('user.count', { count, room });
+      io.to(socket.id).emit('checkCurrentUser', { count, room });
       console.log('cc', Object.keys(users.users).length);
       let now = new Date();
       io.to(params.room).emit('adminMessage', {
@@ -243,16 +244,26 @@ io.on('connection', socket => {
 
   socket.on('ready', (params, callback) => {
     users.readyUser(params.id, params.room, params.isReady);
+    if (params.isReady) {
+      readyUsers.push({ id: params.id });
+    } else if (!params.isReady) {
+      readyUsers.map(user => {
+        if (user.id === params.id) readyUsers.pop(user);
+      });
+    }
+    console.log('ready users', readyUsers.length);
 
-    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
-    console.log(`User ${params.id} is ${params.isReady}`);
-    if (!users.areReady(params.room)) {
+    if (readyUsers.length === 2) {
       let now = new Date();
       io.to(params.room).emit('adminMessage', {
         time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
-        message: `You should wait for another person to join`,
+        message: `Game requires 3 or more than 3 people to start`,
       });
     }
+
+    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
+    console.log(`User ${params.id} is ${params.isReady}`);
+
     if (users.areReady(params.room)) {
       console.log('All users ready, Game will be start in 4s');
       let now = new Date();

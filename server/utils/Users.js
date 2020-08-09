@@ -36,6 +36,7 @@ class Users {
     for (let i = 0; i < this.users.length; i++) {
       if (this.users[i].id === id && this.users[i].room === room) {
         this.users[i].isReady = isReady;
+
         break;
       }
     }
