@@ -208,12 +208,12 @@ io.on('connection', socket => {
 
     console.log('count', count);
     console.log('room', params.room);
-    if (Object.keys(users.getUserList(params.room)).length > 4) {
+    if (Object.keys(users.getUserList(params.room)).length > 1) {
       users.removeUser(socket.id);
       io.to(socket.id).emit('checkCurrentUser', { count, room });
     } else {
       io.to(socket.id).emit('checkCurrentUser', { count, room });
-      console.log('cc', Object.keys(users.users).length);
+      console.log('c', Object.keys(users.users).length);
       let now = new Date();
       io.to(params.room).emit('adminMessage', {
         time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
