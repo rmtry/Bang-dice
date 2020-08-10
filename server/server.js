@@ -208,7 +208,7 @@ io.on('connection', socket => {
 
     console.log('count', count);
     console.log('room', params.room);
-    if (Object.keys(users.getUserList(params.room)).length > 1) {
+    if (Object.keys(users.getUserList(params.room)).length > 8) {
       users.removeUser(socket.id);
       io.to(socket.id).emit('checkCurrentUser', { count, room });
     } else {

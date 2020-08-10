@@ -39,26 +39,6 @@ const HomeScreen = props => {
   const [modalMessage, setModalMessage] = useState();
 
   let modalCmp = <CustomModal modalVisible={modalVisible}>{modalMessage}</CustomModal>;
-  /* const modalCmp = (
-    <Modal
-      animationIn="fadeIn"
-      animationOut="fadeOut"
-      backdropColor="black"
-      backdropOpacity={0.7}
-      coverScreen={false}
-      isVisible={modalVisible}
-    >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <View style={styles.modal}>{modalMessage}</View>
-      </View>
-    </Modal>
-  ); */
 
   const setMessages = message => {
     setAdminMessages(prev => {
@@ -70,7 +50,7 @@ const HomeScreen = props => {
     socket.on('checkCurrentUser', user => {
       console.log('users', user.count);
       console.log('users Room', user.room);
-      if (user.count > 1) {
+      if (user.count > 8) {
         setModalMessage(
           <View
             style={{
