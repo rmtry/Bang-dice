@@ -18,7 +18,6 @@ var users = new Users();
 var games = new Games();
 let count = 0;
 let room = 0;
-let readyUsers = [];
 app.use(express.static(publicPath));
 
 let gameBegin;
@@ -243,38 +242,41 @@ io.on('connection', socket => {
   //}
 
   socket.on('ready', (params, callback) => {
+    // define here so instead of checking all the room in server and all the sockets can access to it, 
+    // it only checks the current users in this room at this moment
+    let readyUsers = [];
+
+    // get the current users are ready
     users.readyUser(params.id, params.room, params.isReady);
-    if (params.isReady) {
-      readyUsers.push({ id: params.id });
-    } else if (!params.isReady) {
-      readyUsers.map(user => {
-        if (user.id === params.id) readyUsers.pop(user);
-      });
-    }
-    console.log('ready users', readyUsers.length);
+    let usersInRoom = users.getUserList(params.room)
+    
+    usersInRoom.map(user => {
+      if(user.isReady) readyUsers.push(user)
+    })
+    console.log('ready users', readyUsers);
 
-    if (readyUsers.length === 2) {
-      let now = new Date();
-      io.to(params.room).emit('adminMessage', {
-        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
-        message: `Game requires 3 or more than 3 people to start`,
-      });
-    }
-
-    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
+    io.to(params.room).emit('updateUserList', usersInRoom);
     console.log(`User ${params.id} is ${params.isReady}`);
 
-    if (users.areReady(params.room)) {
-      console.log('All users ready, Game will be start in 4s');
-      let now = new Date();
-      io.to(params.room).emit('adminMessage', {
-        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
-        message: `All players ready. Game will start in a few seconds...`,
-      });
-      gameBegin = setTimeout(() => {
-        // console.log('Game starts!')
-        startTheGame(params.room, params.id);
-      }, 5000);
+    if(usersInRoom.length === readyUsers.length) {
+      if (readyUsers.length < 3) {
+        let now = new Date();
+        io.to(params.room).emit('adminMessage', {
+          time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+          message: `Game requires 3 or more than 3 people to start`,
+        });
+      } else {
+        console.log('All users ready, Game will be start in 4s');
+        let now = new Date();
+        io.to(params.room).emit('adminMessage', {
+          time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+          message: `All players ready. Game will start in a few seconds...`,
+        });
+        gameBegin = setTimeout(() => {
+          // console.log('Game starts!')
+          startTheGame(params.room, params.id);
+        }, 5000);
+      }
     } else {
       if (gameBegin) {
         let now = new Date();
@@ -284,8 +286,8 @@ io.on('connection', socket => {
         });
       }
       clearTimeout(gameBegin);
+      gameBegin = undefined;
     }
-
     callback();
   });
 

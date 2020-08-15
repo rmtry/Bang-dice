@@ -45,7 +45,7 @@ class Users {
   areReady(room) {
     console.log('Checking user status...');
     var users = this.users.filter(user => user.room === room);
-    let user = users.length >= 3 ? users.find(user => user.isReady === false) : true;
+    let user = users.find(user => user.isReady === false)
     console.log(user);
     return user ? false : true;
   }
