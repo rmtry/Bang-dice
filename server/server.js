@@ -19,8 +19,7 @@ var games = new Games();
 let count = 0;
 let room = 0;
 app.use(express.static(publicPath));
-
-let gameBegin;
+let beginGames = [];
 
 // take the current users in the room and generate role and character to become a "Player"
 generatePlayers = (room, users) => {
@@ -85,6 +84,9 @@ io.on('connection', socket => {
     users.removeUser(socket.id);
     socket.disconnect();
   } */
+
+  let gameBegin;
+
   console.log('new user');
 
   const startTheGame = (room, socketId) => {
@@ -207,7 +209,7 @@ io.on('connection', socket => {
 
     console.log('count', count);
     console.log('room', params.room);
-    if (Object.keys(users.getUserList(params.room)).length > 8) {
+    if (Object.keys(users.getUserList(params.room)).length > 4) {
       users.removeUser(socket.id);
       io.to(socket.id).emit('checkCurrentUser', { count, room });
     } else {
@@ -242,23 +244,23 @@ io.on('connection', socket => {
   //}
 
   socket.on('ready', (params, callback) => {
-    // define here so instead of checking all the room in server and all the sockets can access to it, 
+    // define here so instead of checking all the room in server and all the sockets can access to it,
     // it only checks the current users in this room at this moment
     let readyUsers = [];
 
     // get the current users are ready
     users.readyUser(params.id, params.room, params.isReady);
-    let usersInRoom = users.getUserList(params.room)
-    
+    let usersInRoom = users.getUserList(params.room);
+
     usersInRoom.map(user => {
-      if(user.isReady) readyUsers.push(user)
-    })
+      if (user.isReady) readyUsers.push(user);
+    });
     console.log('ready users', readyUsers);
 
     io.to(params.room).emit('updateUserList', usersInRoom);
     console.log(`User ${params.id} is ${params.isReady}`);
 
-    if(usersInRoom.length === readyUsers.length) {
+    if (usersInRoom.length === readyUsers.length) {
       if (readyUsers.length < 3) {
         let now = new Date();
         io.to(params.room).emit('adminMessage', {
@@ -266,7 +268,7 @@ io.on('connection', socket => {
           message: `Game requires 3 or more than 3 people to start`,
         });
       } else {
-        console.log('All users ready, Game will be start in 4s');
+        console.log('All users ready, Game will be start in 5s');
         let now = new Date();
         io.to(params.room).emit('adminMessage', {
           time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
@@ -276,6 +278,8 @@ io.on('connection', socket => {
           // console.log('Game starts!')
           startTheGame(params.room, params.id);
         }, 5000);
+        beginGames.push(gameBegin);
+        console.log('array of begin games: ', beginGames);
       }
     } else {
       if (gameBegin) {
@@ -285,8 +289,16 @@ io.on('connection', socket => {
           message: `Game cancelled.`,
         });
       }
-      clearTimeout(gameBegin);
-      gameBegin = undefined;
+
+      beginGames.map(game => {
+        if (game === gameBegin) {
+          clearTimeout(game);
+          game = undefined;
+        }
+      });
+
+      // clearTimeout(gameBegin);
+      // gameBegin = undefined;
     }
     callback();
   });
@@ -297,6 +309,17 @@ io.on('connection', socket => {
             return callback('Name and room name are required');
         }
         */
+
+    // clearTimeout(gameBegin);
+    // gameBegin = undefined;
+    beginGames.map(game => {
+      if (game === gameBegin) {
+        clearTimeout(game);
+        game = undefined;
+      }
+    });
+    console.log('game begin leave', gameBegin);
+
     socket.leave(params.room);
     users.removeUser(socket.id, params.name, params.room);
     let now = new Date();
@@ -317,6 +340,16 @@ io.on('connection', socket => {
   });
 
   socket.on('disconnect', () => {
+    // clearTimeout(gameBegin);
+    // gameBegin = undefined;
+    beginGames.map(game => {
+      if (game === gameBegin) {
+        clearTimeout(game);
+        game = undefined;
+      }
+    });
+    console.log('game begin disconnect', gameBegin);
+
     var user = users.removeUser(socket.id);
 
     if (user) {

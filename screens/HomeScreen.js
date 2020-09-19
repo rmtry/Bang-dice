@@ -23,7 +23,7 @@ import { Formik } from 'formik';
 import { MonoText } from '../components/StyledText';
 import CustomModal from '../components/CustomModal';
 import io from 'socket.io-client/dist/socket.io';
-const socket = io('http://192.168.1.152:3000'); // your router ip address here instead of localhost
+const socket = io('http://127.0.0.1:3000'); // your router ip address here instead of localhost
 
 const HomeScreen = props => {
   const [gameBegun, setGameBegun] = useState(false);
@@ -50,7 +50,7 @@ const HomeScreen = props => {
     socket.on('checkCurrentUser', user => {
       console.log('users', user.count);
       console.log('users Room', user.room);
-      if (user.count > 8) {
+      if (user.count > 4) {
         setModalMessage(
           <View
             style={{
