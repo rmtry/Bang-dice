@@ -50,7 +50,7 @@ const HomeScreen = props => {
     socket.on('checkCurrentUser', user => {
       console.log('users', user.count);
       console.log('users Room', user.room);
-      if (user.count > 4) {
+      if (user.count > 8) {
         setModalMessage(
           <View
             style={{

@@ -209,7 +209,7 @@ io.on('connection', socket => {
 
     console.log('count', count);
     console.log('room', params.room);
-    if (Object.keys(users.getUserList(params.room)).length > 4) {
+    if (Object.keys(users.getUserList(params.room)).length > 8) {
       users.removeUser(socket.id);
       io.to(socket.id).emit('checkCurrentUser', { count, room });
     } else {
@@ -290,15 +290,15 @@ io.on('connection', socket => {
         });
       }
 
-      beginGames.map(game => {
-        if (game === gameBegin) {
-          clearTimeout(game);
-          game = undefined;
-        }
-      });
+      // beginGames.map(game => {
+      //   if (Object.is(game,gameBegin)) {
+      //     clearTimeout(game);
+      //     game = undefined;
+      //   }
+      // });
 
-      // clearTimeout(gameBegin);
-      // gameBegin = undefined;
+      clearTimeout(gameBegin);
+      gameBegin = undefined;
     }
     callback();
   });
@@ -310,14 +310,14 @@ io.on('connection', socket => {
         }
         */
 
-    // clearTimeout(gameBegin);
-    // gameBegin = undefined;
-    beginGames.map(game => {
-      if (game === gameBegin) {
-        clearTimeout(game);
-        game = undefined;
-      }
-    });
+    clearTimeout(gameBegin);
+    gameBegin = undefined;
+    // beginGames.map(game => {
+    //   if (game === gameBegin) {
+    //     clearTimeout(game);
+    //     game = undefined;
+    //   }
+    // });
     console.log('game begin leave', gameBegin);
 
     socket.leave(params.room);
@@ -340,14 +340,14 @@ io.on('connection', socket => {
   });
 
   socket.on('disconnect', () => {
-    // clearTimeout(gameBegin);
-    // gameBegin = undefined;
-    beginGames.map(game => {
-      if (game === gameBegin) {
-        clearTimeout(game);
-        game = undefined;
-      }
-    });
+    clearTimeout(gameBegin);
+    gameBegin = undefined;
+    // beginGames.map(game => {
+    //   if (game === gameBegin) {
+    //     clearTimeout(game);
+    //     game = undefined;
+    //   }
+    // });
     console.log('game begin disconnect', gameBegin);
 
     var user = users.removeUser(socket.id);
