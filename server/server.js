@@ -290,15 +290,10 @@ io.on('connection', socket => {
         });
       }
 
-      // beginGames.map(game => {
-      //   if (Object.is(game,gameBegin)) {
-      //     clearTimeout(game);
-      //     game = undefined;
-      //   }
-      // });
-
-      clearTimeout(gameBegin);
-      gameBegin = undefined;
+      const index = beginGames.findIndex(game => game._idleStart === gameBegin._idleStart);
+      clearTimeout(beginGames[index]);
+      beginGames[index] = undefined;
+      console.log('array clear ', beginGames);
     }
     callback();
   });
