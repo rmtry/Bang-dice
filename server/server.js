@@ -1,278 +1,365 @@
 const path = require('path');
 const http = require('http');
-const express= require('express');
+const express = require('express');
 const socketIO = require('socket.io');
 
 // const {generateMessage, generateLocationMessage} = require('./utils/message.js');
 // const {isRealString} = require('./utils/validation');
-const {Users} = require('./utils/users');
-const {Games, Game} = require('./utils/games');
-const {Player} = require('./utils/player');
+const { Users } = require('./utils/users');
+const { Games, Game } = require('./utils/games');
+const { Player } = require('./utils/player');
 
 const publicPath = path.join(__dirname, '../public');
 const port = process.env.PORT || 3000;
 var app = express();
 var server = http.createServer(app);
-var io= socketIO(server);
+var io = socketIO(server);
 var users = new Users();
-var games = new Games()
-
+var games = new Games();
+let count = 0;
+let room = 0;
 app.use(express.static(publicPath));
-
-let gameBegin;
+let beginGames = [];
 
 // take the current users in the room and generate role and character to become a "Player"
 generatePlayers = (room, users) => {
-    let quantity = users.length
-    console.log('generated users', users)
-    let roles = []
-    let characters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'p', 'q']
-    let players = []
-    let roleId = undefined
-    let characterId = undefined
+  let quantity = users.length;
+  console.log('generated users', users);
+  let roles = [];
+  let characters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'p', 'q'];
+  let players = [];
+  let roleId = undefined;
+  let characterId = undefined;
 
-    switch(quantity){
-        case 3:
-            roles = ['S', 'R', 'O']
-            break;
-        case 4:
-            roles = ['S', 'V', 'O', 'O']
-            break;
-        case 5:
-            roles = ['S', 'V', 'O', 'O', 'R']
-            break;
-        case 6:
-            roles = ['S', 'V', 'O', 'O', 'R', 'V']
-            break;
-        case 7:
-            roles = ['S', 'V', 'O', 'O', 'R', 'R', 'O']
-            break;
-        default:
-            roles = ['S', 'V', 'O', 'O', 'R', 'V', 'O', 'R']
-            break;
-    }
+  switch (quantity) {
+    case 3:
+      roles = ['S', 'R', 'O'];
+      break;
+    case 4:
+      roles = ['S', 'V', 'O', 'O'];
+      break;
+    case 5:
+      roles = ['S', 'V', 'O', 'O', 'R'];
+      break;
+    case 6:
+      roles = ['S', 'V', 'O', 'O', 'R', 'V'];
+      break;
+    case 7:
+      roles = ['S', 'V', 'O', 'O', 'R', 'R', 'O'];
+      break;
+    default:
+      roles = ['S', 'V', 'O', 'O', 'R', 'V', 'O', 'R'];
+      break;
+  }
 
-    console.log('generated roles', roles)
+  console.log('generated roles', roles);
 
-    for (let i = 0; i< users.length; i++) {
-        roleId = roles[Math.floor(Math.random() * roles.length)];
-        characterId = characters[Math.floor(Math.random() * characters.length)];
-        
-        let player = new Player(users[i].id, room, roleId, characterId, i)
-        console.log('generated player', player)
+  for (let i = 0; i < users.length; i++) {
+    roleId = roles[Math.floor(Math.random() * roles.length)];
+    characterId = characters[Math.floor(Math.random() * characters.length)];
 
-        players.push(player)
+    let player = new Player(users[i].id, room, roleId, characterId, i);
+    console.log('generated player', player);
 
-        roles.splice(roles.indexOf(roleId), 1)
-        characters.splice(characters.indexOf(characterId), 1)
-        console.log('generated roles left', roles)
-        console.log('generated characters left', characters)
+    players.push(player);
 
-    }
+    roles.splice(roles.indexOf(roleId), 1);
+    characters.splice(characters.indexOf(characterId), 1);
+    console.log('generated roles left', roles);
+    console.log('generated characters left', characters);
+  }
 
-    return players
-}
+  return players;
+};
 
+io.on('connection', socket => {
+  /*  if (Object.keys(users.users).length >= 4) {
+    console.log('stop', Object.keys(users.users).length);
+    socket.emit('stop', {
+      doStop: true,
+    });
+  } */
+  /* if (count > 4) {
+    console.log('count1' + count);
+    users.removeUser(socket.id);
+    socket.disconnect();
+  } */
 
-io.on('connection', (socket) => {
-    console.log('new user');
+  let gameBegin;
 
-    const startTheGame = (room, socketId) => {
-        let now = new Date()
-        io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'The game has begun!'});
+  console.log('new user');
 
-        // generate the game with users in the room
-        let usersInRoom = users.getUserList(room)
-        let players = generatePlayers(room, usersInRoom)
-        console.log('generated players', players)
-        games.addGame(room, players, true)
-        console.log('generated games', games)
+  const startTheGame = (room, socketId) => {
+    let now = new Date();
+    io.to(room).emit('adminMessage', {
+      time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+      message: 'The game has begun!',
+    });
 
-        let currentGame = games.getGameData(room, socketId)
-        console.log('current game', currentGame.players)
+    // generate the game with users in the room
+    let usersInRoom = users.getUserList(room);
+    let players = generatePlayers(room, usersInRoom);
+    console.log('generated players', players);
+    games.addGame(room, players, true);
+    console.log('generated games', games);
 
-        // send the new generated game to client
-        io.to(room).emit('gameData', currentGame);
-        io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Game will start soon, prepare for the battle!'});
+    let currentGame = games.getGame(room);
+    console.log('current game', currentGame.players);
 
-        // define the first turn
-        let position = currentGame.currentTurnIndex
-        
-        // define the logic to switch the turn, each turn 5s 
-        let turn = (position) => {
-            // change the current turn
-            games.changeGameData(room, { currentTurnIndex: position })
-            // send the current turn data to the client
-            currentGame = games.getGameData(room, socketId)
-            io.to(room).emit('gameData', currentGame);
-            io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position});
+    // send the new generated game to client
+    io.to(room).emit('gameData', {
+      ...currentGame,
+      players: currentGame.players.filter(player => player.id === socketId),
+    });
+    io.to(room).emit('adminMessage', {
+      time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+      message: 'Game will start soon, prepare for the battle!',
+    });
 
-            console.log('Turn of ', position)
+    // define the first turn
+    let position = currentGame.currentTurnIndex;
 
-            // execute after 5s
-            setTimeout(() => {
-                // Should execute all the selected dices
-                console.log('EXECUTING DICES... ', position)
-                games.executeDices(room, position)
+    // define the logic to switch the turn, each turn 5s
+    let turn = position => {
+      // send the current turn data to the client
+      io.to(room).emit('gameData', {
+        ...currentGame,
+        players: currentGame.players.filter(player => player.id === socketId),
+      });
+      io.to(room).emit('adminMessage', {
+        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+        message: 'Turn of player position ' + position,
+      });
 
-                console.log('Turn end ', position)
-                io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: 'Turn of player position ' + position + ' ended'});
+      console.log('Turn of ', position);
 
-                console.log('checking game it can be continued...')
-                games.checkGameStatus(room)
-                
-                if (games.checkGameContinue(room)) {
-                    position++
-                    if(position === currentGame.players.length) position = 0
-                    console.log('Havent reached the end, game continues...')
-                    turn(position)
-                } else {
-                    console.log('There is a winner, game ended...')
-                    let player = games.getGame(room).winner
-                    console.log('The winner is', player)
-                    let winner
-                    switch(player.roleId) {
-                        case 'O':
-                            winner = "Outlaws"
-                            break;
-                        case 'S':
-                            winner = "Sherif"
-                            break;
-                        case 'R':
-                            winner = "Renegades"
-                            break;           
-                    }
-                    io.to(room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game has ended, The ${winner} wins!`});
-                }
-            }, 10000)
-            
-            // action in the turn
-            // games.useEffect(room, 'shoot', 2, position, position)
-            console.log('action happened ')
-            console.log('Game history', games.getGame(room).players.map(player => ({ role: player.roleId, health: player.health })))
+      // execute after 5s
+      setTimeout(() => {
+        console.log('Turn end ', position);
+        io.to(room).emit('adminMessage', {
+          time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+          message: 'Turn of player position ' + position + ' ended',
+        });
+
+        console.log('checking game it can be continued...');
+        games.checkGameStatus(room);
+
+        if (games.checkGameContinue(room)) {
+          position++;
+          if (position === currentGame.players.length) position = 0;
+          console.log('Havent reached the end, game continues...');
+          turn(position);
+        } else {
+          console.log('There is a winner, game ended...');
+          let player = games.getGame(room).winner;
+          console.log('The winner is', player);
+          let winner;
+          switch (player.roleId) {
+            case 'O':
+              winner = 'Outlaws';
+              break;
+            case 'S':
+              winner = 'Sherif';
+              break;
+            case 'R':
+              winner = 'Renegades';
+              break;
+          }
+          io.to(room).emit('adminMessage', {
+            time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+            message: `Game has ended, The ${winner} wins!`,
+          });
         }
+      }, 5000);
 
-        // Actual run the turn() after 5s to let users prepare
-        setTimeout(() => {
-            turn(position)
-        }, 1000)
+      // action in the turn
+      games.useEffect(room, 'shoot', 2, position, position);
+      console.log('action happened ');
+      console.log(
+        'Game history',
+        games.getGame(room).players.map(player => ({ role: player.roleId, health: player.health })),
+      );
+    };
+
+    // Actual run the turn() after 5s to let users prepare
+    setTimeout(() => {
+      turn(position);
+    }, 1000);
+  };
+
+  socket.on('action', (params, callback) => {
+    console.log(`Action from Player: ${params.name}, index ${params.index}`);
+  });
+  // if (Object.keys(users.users).length < 4) {
+  console.log('number', Object.keys(users.users).length);
+  socket.on('join', (params, callback) => {
+    /*
+          if (!isRealString(params.name) || !isRealString(params.room)) {
+              return callback('Name and room name are required');
+          }
+          */
+
+    socket.join(params.room);
+    users.removeUser(socket.id);
+
+    users.addUser(socket.id, params.name, params.room);
+    console.log('sid', socket.id);
+    count = Object.keys(users.getUserList(params.room)).length;
+    room = params.room;
+
+    console.log('count', count);
+    console.log('room', params.room);
+    if (Object.keys(users.getUserList(params.room)).length > 8) {
+      users.removeUser(socket.id);
+      io.to(socket.id).emit('checkCurrentUser', { count, room });
+    } else {
+      io.to(socket.id).emit('checkCurrentUser', { count, room });
+      console.log('c', Object.keys(users.users).length);
+      let now = new Date();
+      io.to(params.room).emit('adminMessage', {
+        time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+        message: `${params.name} joined the room`,
+      });
+      io.to(params.room).emit('updateUserList', users.getUserList(params.room));
+
+      // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
+      socket.emit('statusMessage', { from: 'Admin', message: 'Welcome ' + params.name + ' to the game!' });
+
+      // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
+      //
+      //
+      /* } else if (Object.keys(users.users).length >= 4) {
+              console.log('cc1', Object.keys(users.users).length);
         
+              let now = new Date();
+              io.to(params.room).emit('adminMessage', {
+                time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+                message: `Room is full`,
+              });
+            } */
+      console.log(users.getUser(params.room));
+      callback();
     }
+  });
+  //}
 
-    socket.on('action', (params, callback) => {
-        console.log(`Action from Player: ${params.name}, index ${params.index}, type ${params.action}`)
-        // rollDice, saveDice, useDice, useAbility, event
+  socket.on('ready', (params, callback) => {
+    // define here so instead of checking all the room in server and all the sockets can access to it,
+    // it only checks the current users in this room at this moment
+    let readyUsers = [];
 
-        if(games.checkTurn(params.room, socket.id)){
-            switch(params.action) {
-                case 'ROLLDICE':
-                    games.rollDices(params.room, params.index)
-                    break;
-                case 'KEEPDICE':
-                    games.keepDices(params.room, params.diceIndexes)
-                    break;
-                case 'USEDICE':
-                    games.keepDices(params.room, params.targetIndexes)
-                    break;
-            }
-            let currentGame = games.getGameData(params.room, socket.id)
-            io.to(params.room).emit('gameData', currentGame);
-        }
-        else {
-            socket.emit('userMessage', { message: `It is not your turn!` });
-        }
-        callback()
-    })
+    // get the current users are ready
+    users.readyUser(params.id, params.room, params.isReady);
+    let usersInRoom = users.getUserList(params.room);
 
-    socket.on('join', (params, callback) => {
+    usersInRoom.map(user => {
+      if (user.isReady) readyUsers.push(user);
+    });
+    console.log('ready users', readyUsers);
 
-        /*
+    io.to(params.room).emit('updateUserList', usersInRoom);
+    console.log(`User ${params.id} is ${params.isReady}`);
+
+    if (usersInRoom.length === readyUsers.length) {
+      if (readyUsers.length < 3) {
+        let now = new Date();
+        io.to(params.room).emit('adminMessage', {
+          time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+          message: `Game requires 3 or more than 3 people to start`,
+        });
+      } else {
+        console.log('All users ready, Game will be start in 5s');
+        let now = new Date();
+        io.to(params.room).emit('adminMessage', {
+          time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+          message: `All players ready. Game will start in a few seconds...`,
+        });
+        gameBegin = setTimeout(() => {
+          // console.log('Game starts!')
+          startTheGame(params.room, params.id);
+        }, 5000);
+        beginGames.push(gameBegin);
+        console.log('array of begin games: ', beginGames);
+      }
+    } else {
+      if (gameBegin) {
+        let now = new Date();
+        io.to(params.room).emit('adminMessage', {
+          time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+          message: `Game cancelled.`,
+        });
+      }
+
+      const index = beginGames.findIndex(game => game._idleStart === gameBegin._idleStart);
+      clearTimeout(beginGames[index]);
+      beginGames[index] = undefined;
+      console.log('array clear ', beginGames);
+    }
+    callback();
+  });
+
+  socket.on('leave', (params, callback) => {
+    /*
         if (!isRealString(params.name) || !isRealString(params.room)) {
             return callback('Name and room name are required');
         }
         */
 
-        socket.join(params.room);
-        users.removeUser(socket.id);
-        users.addUser(socket.id, params.name, params.room);
-        let now = new Date()
-        io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `${params.name} joined the room`});
-        io.to(params.room).emit('updateUserList', users.getUserList(params.room));
-        
-        // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
-        socket.emit('statusMessage', {from: 'Admin', message: 'Welcome ' + params.name + ' to the game!'});
-        
-        // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
-        //
-        //
+    clearTimeout(gameBegin);
+    gameBegin = undefined;
+    // beginGames.map(game => {
+    //   if (game === gameBegin) {
+    //     clearTimeout(game);
+    //     game = undefined;
+    //   }
+    // });
+    console.log('game begin leave', gameBegin);
 
-        console.log(users)
-        callback();
+    socket.leave(params.room);
+    users.removeUser(socket.id, params.name, params.room);
+    let now = new Date();
+    io.to(params.room).emit('adminMessage', {
+      time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`,
+      message: `${params.name} left the room`,
     });
+    io.to(params.room).emit('updateUserList', users.getUserList(params.room));
 
-    socket.on('ready', (params, callback) => {
-        users.readyUser(params.id, params.room, params.isReady)
+    // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
+    socket.emit('statusMessage', { from: 'Admin', message: params.name + 'left the game!' });
 
-        io.to(params.room).emit('updateUserList', users.getUserList(params.room));
-        console.log(`User ${params.id} is ${params.isReady}`)
+    // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
+    //
+    //
+    console.log('an user left the room', params.room);
+    callback();
+  });
 
-        if (users.areReady(params.room)) {
-            console.log('All users ready, Game will be start in 4s')
-            let now = new Date()
-            io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `All players ready. Game will start in a few seconds...`});
-            gameBegin = setTimeout(() => {
-                // console.log('Game starts!')
-                startTheGame(params.room, params.id)
-            }, 5000)
-        } else {
-            if(gameBegin) {
-                let now = new Date()
-                io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `Game cancelled.`});
-            }
-            clearTimeout(gameBegin)
-        }
+  socket.on('disconnect', () => {
+    clearTimeout(gameBegin);
+    gameBegin = undefined;
+    // beginGames.map(game => {
+    //   if (game === gameBegin) {
+    //     clearTimeout(game);
+    //     game = undefined;
+    //   }
+    // });
+    console.log('game begin disconnect', gameBegin);
 
-        callback();
-    })
+    var user = users.removeUser(socket.id);
 
-    socket.on('leave', (params, callback) => {
-
-        /*
-        if (!isRealString(params.name) || !isRealString(params.room)) {
-            return callback('Name and room name are required');
-        }
-        */
-
-        socket.leave(params.room);
-        users.removeUser(socket.id, params.name, params.room);
-        let now = new Date()
-        io.to(params.room).emit('adminMessage', { time: `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`, message: `${params.name} left the room`});
-        io.to(params.room).emit('updateUserList', users.getUserList(params.room));
-
-        // socket.emit('statusMessage', generateMessage('Admin', 'Welcome to the chatapp!'));
-        socket.emit('statusMessage', {from: 'Admin', message: params.name + 'left the game!'});
-
-        // socket.broadcast.to(params.room).emit('statusMessage', generateMessage('Admin', params.name +' joined!'));
-        //
-        //
-        console.log('an user left the room', params.room)
-        callback();
-    });
-
-    socket.on('disconnect', () => {
-        var user = users.removeUser(socket.id);
-
-        if(user) {
-            io.to(user.room).emit('updateUserList', users.getUserList(user.room));
-            // io.to(user.room).emit('newMessage', generateMessage('Admin', `${user.name} has left the room`));
-            socket.broadcast.to(user.room).emit('statusMessage', {from: 'Admin', message: `${user.name} has left the room`});
-            console.log('An User left the room.')
-        } else {
-            console.log('An User left the server.')
-        }
-    })
+    if (user) {
+      io.to(user.room).emit('updateUserList', users.getUserList(user.room));
+      // io.to(user.room).emit('newMessage', generateMessage('Admin', `${user.name} has left the room`));
+      socket.broadcast
+        .to(user.room)
+        .emit('statusMessage', { from: 'Admin', message: `${user.name} has left the room` });
+      console.log('An User left the room.');
+    } else {
+      console.log('An User left the server.');
+    }
+  });
 });
 
-server.listen(port, () =>{
-    console.log('Server is on port ' + port);
+server.listen(port, () => {
+  console.log('Server is on port ' + port);
 });
